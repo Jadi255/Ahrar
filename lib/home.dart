@@ -1,3 +1,4 @@
+import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:tahrir/Pages/profiles.dart";
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -28,14 +29,16 @@ class _HomeState extends State<Home> {
     const Profile(),
   ];
 
-  String buildNo = "231123/3";
+  String buildNo = "241123";
 
   @override
   void initState() {
     super.initState();
     checkConnection();
     checkAlerts();
-    checkUpdates();
+    if (!kIsWeb) {
+      checkUpdates();
+    }
   }
 
   Future checkUpdates() async {
