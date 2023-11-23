@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../user_data.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart' hide TextDirection;
@@ -35,66 +36,6 @@ class _SignUpState extends State<SignUp> {
   int _selectedValue = 0;
 
   Widget btnText = const Text("متابعة");
-
-  Future<void> sign() async {
-    setState(() {
-      btnText = const CupertinoActivityIndicator(
-        color: Colors.white,
-      );
-    });
-
-    String sex = "female";
-    if (_selectedValue != 1) {
-      sex = "male";
-    }
-
-    final body = <String, dynamic>{
-      "email": emailController.text,
-      "emailVisibility": true,
-      "password": passwordController.text,
-      "passwordConfirm": passwordController.text,
-      "fname": fnameController.text,
-      "lname": lnameController.text,
-      "sex": sex,
-      "birthday": birthdayController.text,
-    };
-
-    body.forEach((key, value) {
-      if (value == "") {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('الرجاء إدخال جميع البيانات')),
-        );
-        return;
-      }
-    });
-
-    if (passwordController.text != confirmController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('الرجاء التأكد من كلمة المرور')),
-      );
-      return;
-    }
-
-    var request = await signUp(body);
-
-    switch (request) {
-      case 1:
-        setState(() {
-          btnText = const Icon(Icons.check);
-        });
-        var auth =
-            await authenticate(emailController.text, passwordController.text);
-        if (auth == 1) {
-          Navigator.of(context).pushReplacementNamed('/home');
-        }
-      case 2:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('حدث خطأ ما، الرجاء المحاولة في وقت لاحق')),
-        );
-        return;
-    }
-  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -156,12 +97,79 @@ class _SignUpState extends State<SignUp> {
     );
   }
 
-  Future signUp(Map<String, dynamic> body) async {
+  Future signUp() async {
+    setState(() {
+      btnText = const CupertinoActivityIndicator(
+        color: Colors.white,
+      );
+    });
+
+    String sex = "female";
+    if (_selectedValue != 1) {
+      sex = "male";
+    }
+
+    print(_avatarFile);
+
+    final body = <String, dynamic>{
+      "email": emailController.text,
+      "emailVisibility": true,
+      "password": passwordController.text,
+      "passwordConfirm": passwordController.text,
+      "fname": fnameController.text,
+      "lname": lnameController.text,
+      "sex": sex,
+      "birthday": birthdayController.text,
+    };
+
+    if (body["email"] == "" ||
+        body["password"] == "" ||
+        body["passwordConfirm"] == "" ||
+        body["fname"] == "" ||
+        body["lname"] == "" ||
+        body["sex"] == "" ||
+        body["birthday"] == "" ||
+        _avatarFile == null) {
+      setState(() {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('الرجاء إدخال جميع البيانات')),
+        );
+      });
+      return;
+    }
+
+    if (!RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$")
+        .hasMatch(body["email"])) {
+      setState(() {
+        btnText = const Text("متابعة");
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('الرجاء إدخال بريد إلكتروني صالح')),
+        );
+      });
+    }
+    if (passwordController.text != confirmController.text) {
+      setState(() {
+        btnText = const Text("متابعة");
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('الرجاء التأكد من كلمة المرور')),
+        );
+      });
+      return;
+    }
+
     try {
       var request = await pb.collection('users').create(body: body);
       var authResponse = await pb
           .collection('users')
           .authWithPassword(body['email'], body['password']);
+
+      var prefs = await SharedPreferences.getInstance();
+      prefs.setString('email', emailController.text);
+      prefs.setString('id', pb.authStore.model.id);
+      prefs.setString('password', passwordController.text);
+      userID = pb.authStore.model.id;
       if (kIsWeb) {
         Uint8List newAvatar = _avatarFile!.readAsBytesSync();
 
@@ -169,9 +177,9 @@ class _SignUpState extends State<SignUp> {
       } else {
         await updateAvatarNonWeb(_avatarFile!);
       }
-      return 1;
+      Navigator.of(context).pushNamed('/home');
     } catch (e) {
-      throw (e);
+      throw e;
       return 2;
     }
   }
@@ -335,7 +343,9 @@ class _SignUpState extends State<SignUp> {
                     Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: FilledButton(
-                        onPressed: sign,
+                        onPressed: () async {
+                          await signUp();
+                        },
                         style: ButtonStyle(
                             backgroundColor:
                                 MaterialStatePropertyAll(blackColor)),

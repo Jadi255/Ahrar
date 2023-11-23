@@ -37,7 +37,7 @@ Future authenticate(email, password) async {
     isVerified = user['verified'];
 
     var avatarUrl = pb.getFileUrl(userData, user['avatar']).toString();
-    profilePic = Image.network('$avatarUrl?token=${pb.authStore.token}');
+    var profilePic = Image.network('$avatarUrl?token=${pb.authStore.token}');
   } catch (e) {
     return 2;
   }
@@ -50,7 +50,6 @@ Future authenticate(email, password) async {
     return 1;
   }
 }
-
 
 Future<bool> checkUser() async {
   final prefs = await SharedPreferences.getInstance();

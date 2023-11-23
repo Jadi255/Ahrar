@@ -39,8 +39,14 @@ class _ViewProfileState extends State<ViewProfile> {
 
     var avatarUrl = pb.files.getUrl(record, record.toJson()['avatar']);
 
-    avatar =
-        Image.network('$avatarUrl?token=${pb.authStore.token}', width: 250);
+    var avatar;
+    try {
+      avatar =
+          Image.network('$avatarUrl?token=${pb.authStore.token}', width: 250);
+    } catch (e) {
+      avatar = Image.network(
+          'https://png.pngtree.com/png-clipart/20210915/ourmid/pngtree-user-avatar-placeholder-png-image_3918418.jpg');
+    }
 
     var username = '${account['fname']} ${account['lname']}';
     var bio = account['about'];
@@ -254,8 +260,8 @@ class _ViewProfileState extends State<ViewProfile> {
                           if (existingRequest.toJson()['items'].length != 0) {
                             ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content: Text(
-                                        'تم إرسال طلب صداقة مسبقاً')));
+                                    content:
+                                        Text('تم إرسال طلب صداقة مسبقاً')));
                             return;
                           }
 

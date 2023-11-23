@@ -105,8 +105,14 @@ class _CircleState extends State<Circle> {
       var postTime = DateFormat('dd/MM/yyyy · HH:mm')
           .format(DateTime.parse(post['created']).toLocal());
       String by = '${userData['fname']} ${userData['lname']}';
-      var posterAvatar =
-          Image.network('$avatarUrl?token=${pb.authStore.token}');
+      var posterAvatar;
+      try {
+        posterAvatar = Image.network('$avatarUrl?token=${pb.authStore.token}');
+      } catch (e) {
+        posterAvatar = Image.network(
+            'https://png.pngtree.com/png-clipart/20210915/ourmid/pngtree-user-avatar-placeholder-png-image_3918418.jpg');
+      }
+
       int ratio = post['likes'].length - post['dislikes'].length;
 
       Widget postWidget = ratio < 0
@@ -569,7 +575,7 @@ class _CircleState extends State<Circle> {
 
   void getUpdates() {
     if (kIsWeb) {
-      Timer.periodic(const Duration(seconds: 3), (timer) async {
+      Timer.periodic(const Duration(seconds: 60), (timer) async {
         var record = await pb
             .collection('circle_posts')
             .getList(page: 1, perPage: 1, sort: '-created');
@@ -592,8 +598,15 @@ class _CircleState extends State<Circle> {
 
         var avatarUrl =
             pb.getFileUrl(posterRecord, userData['avatar']).toString();
-        var posterAvatar =
-            Image.network('$avatarUrl?token=${pb.authStore.token}');
+        print(avatarUrl);
+        var posterAvatar;
+        try {
+          posterAvatar =
+              Image.network('$avatarUrl?token=${pb.authStore.token}');
+        } catch (e) {
+          posterAvatar = Image.network(
+              'https://png.pngtree.com/png-clipart/20210915/ourmid/pngtree-user-avatar-placeholder-png-image_3918418.jpg');
+        }
 
         var postTime = DateFormat('dd/MM/yyyy · HH:mm')
             .format(DateTime.parse(newPost['created']).toLocal());
@@ -1400,6 +1413,7 @@ class _ShowCommentsState extends State<ShowComments> {
   late List records;
   String topic = '';
   TextDirection textDirection = TextDirection.ltr;
+  bool isPosting = false; // Add this line
 
   @override
   void initState() {
@@ -1607,6 +1621,10 @@ class _ShowCommentsState extends State<ShowComments> {
   }
 
   Future<void> postComment() async {
+    setState(() {
+      isPosting = true; // Set isPosting to true at the start
+    });
+
     if (editMode) {
       final body = <String, dynamic>{"comment": controller.text};
 
@@ -1640,6 +1658,8 @@ class _ShowCommentsState extends State<ShowComments> {
       final record = await pb.collection('circle_comments').create(body: body);
       var newComment = await createCommentCard(record, comments.length - 1);
       setState(() {
+        isPosting = false; // Set isPosting back to false when done
+
         controller.text = "";
         comments.add(newComment);
       });
@@ -1665,7 +1685,13 @@ class _ShowCommentsState extends State<ShowComments> {
     var avatarUrl = pb.getFileUrl(posterRecord, userData['avatar']).toString();
     var postTime = timeAgo(DateTime.parse(post['created']).toLocal());
     String by = '${userData['fname']} ${userData['lname']}';
-    var posterAvatar = Image.network('$avatarUrl?token=${pb.authStore.token}');
+    var posterAvatar;
+    try {
+      posterAvatar = Image.network('$avatarUrl?token=${pb.authStore.token}');
+    } catch (e) {
+      posterAvatar = Image.network(
+          'https://png.pngtree.com/png-clipart/20210915/ourmid/pngtree-user-avatar-placeholder-png-image_3918418.jpg');
+    }
 
     return createPostWidget(post, by, posterAvatar, postTime);
   }
@@ -1922,10 +1948,13 @@ class _ShowCommentsState extends State<ShowComments> {
                 );
               }),
             ),
-            IconButton(
-              onPressed: postComment,
-              icon: const Icon(Icons.send),
-            )
+            isPosting // Check if isPosting is true
+                ? CupertinoActivityIndicator() // Show activity indicator
+                : IconButton(
+                    // Else, show the button
+                    onPressed: postComment,
+                    icon: const Icon(Icons.send),
+                  ),
           ],
         ),
       ),
@@ -2067,7 +2096,13 @@ class _ReportAbuseState extends State<ReportAbuse> {
     var avatarUrl = pb.getFileUrl(posterRecord, userData['avatar']).toString();
     var postTime = timeAgo(DateTime.parse(post['created']).toLocal());
     String by = '${userData['fname']} ${userData['lname']}';
-    var posterAvatar = Image.network('$avatarUrl?token=${pb.authStore.token}');
+    var posterAvatar;
+    try {
+      posterAvatar = Image.network('$avatarUrl?token=${pb.authStore.token}');
+    } catch (e) {
+      posterAvatar = Image.network(
+          'https://png.pngtree.com/png-clipart/20210915/ourmid/pngtree-user-avatar-placeholder-png-image_3918418.jpg');
+    }
 
     return createPostWidget(post, by, posterAvatar, postTime);
   }

@@ -69,7 +69,7 @@ class _NotificationsState extends State<Notifications> {
 
     try {
       if (kIsWeb) {
-        Timer.periodic(const Duration(seconds: 3), (timer) async {
+        Timer.periodic(const Duration(seconds: 60), (timer) async {
           var latestCommentRecords = await pb
               .collection('circle_comments')
               .getList(page: 1, perPage: 1, sort: '-created');

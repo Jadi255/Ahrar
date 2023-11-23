@@ -91,7 +91,13 @@ class _SwipeCardsState extends State<SwipeCards> {
     Map userData = posterRecord.toJson();
     // Get the user's avatar
     var avatarUrl = pb.getFileUrl(posterRecord, userData['avatar']).toString();
-    var posterAvatar = Image.network('$avatarUrl?token=${pb.authStore.token}');
+    var posterAvatar;
+    try {
+      posterAvatar = Image.network('$avatarUrl?token=${pb.authStore.token}');
+    } catch (e) {
+      posterAvatar = Image.network(
+          'https://png.pngtree.com/png-clipart/20210915/ourmid/pngtree-user-avatar-placeholder-png-image_3918418.jpg');
+    }
 
     // Format the post time
     var postTime = timeAgo(DateTime.parse(post['created']).toLocal());

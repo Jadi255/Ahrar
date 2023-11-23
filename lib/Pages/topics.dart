@@ -212,8 +212,13 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
       var postTime = DateFormat('dd/MM/yyyy · HH:mm')
           .format(DateTime.parse(post['created']).toLocal());
       String by = '${userData['fname']} ${userData['lname']}';
-      var posterAvatar =
-          Image.network('$avatarUrl?token=${pb.authStore.token}');
+      var posterAvatar;
+      try {
+        posterAvatar = Image.network('$avatarUrl?token=${pb.authStore.token}');
+      } catch (e) {
+        posterAvatar = Image.network(
+            'https://png.pngtree.com/png-clipart/20210915/ourmid/pngtree-user-avatar-placeholder-png-image_3918418.jpg');
+      }
       int ratio = post['likes'].length - post['dislikes'].length;
 
       Widget postWidget = ratio < 0

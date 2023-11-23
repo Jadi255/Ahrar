@@ -144,7 +144,7 @@ class _HomeState extends State<Home> {
 
   Future<void> checkConnection() async {
     final connectivityResult = await (Connectivity().checkConnectivity());
-    Timer.periodic(const Duration(seconds: 3), (timer) async {
+    Timer.periodic(const Duration(seconds: 50), (timer) async {
       if (connectivityResult == ConnectivityResult.none) {
         Navigator.of(context).push(MaterialPageRoute(builder: (context) {
           return NoConnection();
