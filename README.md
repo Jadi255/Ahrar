@@ -3,4 +3,4 @@
 تطبيق سوشيال ميديا عربي
 
 ## TechStack
-- Fl/ock stack: Pocketbase + Flutter
+- Fl/ock stack: Pocketbase + FlutterR
