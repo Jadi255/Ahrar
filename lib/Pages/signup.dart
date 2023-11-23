@@ -1,8 +1,14 @@
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../user_data.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'styles.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 late String name;
 late String id;
@@ -22,6 +28,9 @@ class _SignUpState extends State<SignUp> {
   final TextEditingController lnameController = TextEditingController();
   TextEditingController birthdayController = TextEditingController();
   TextDirection textDirection = TextDirection.ltr;
+  File? _avatarFile;
+  late Image avatarImage;
+  Widget leading = Icon(Icons.image);
 
   int _selectedValue = 0;
 
@@ -110,6 +119,84 @@ class _SignUpState extends State<SignUp> {
     }
   }
 
+  Future updateAvatarWeb(Uint8List newAvatar) async {
+    var filename = 'avatar.jpg'; // Replace with your desired filename format
+    http.MultipartFile multipartFile;
+
+    multipartFile = http.MultipartFile.fromBytes(
+      'avatar',
+      newAvatar,
+      filename: filename,
+      contentType: MediaType(
+          'image', 'jpeg'), // Replace with the appropriate content type
+    );
+
+    await pb.collection('users').update(
+      pb.authStore.model.id,
+      files: [multipartFile],
+    );
+  }
+
+  Future updateAvatarNonWeb(File newAvatar) async {
+    var path = newAvatar.path;
+    var filename = 'avatar.jpg'; // Replace with your desired filename format
+    http.MultipartFile multipartFile;
+
+    multipartFile = await http.MultipartFile.fromPath(
+      'avatar',
+      path,
+      filename: filename,
+      contentType: MediaType(
+          'image', 'jpeg'), // Replace with the appropriate content type
+    );
+
+    var record = await pb.collection('users').update(
+      pb.authStore.model.id,
+      files: [multipartFile],
+    );
+  }
+
+  Future signUp(Map<String, dynamic> body) async {
+    try {
+      var request = await pb.collection('users').create(body: body);
+      var authResponse = await pb
+          .collection('users')
+          .authWithPassword(body['email'], body['password']);
+      if (kIsWeb) {
+        Uint8List newAvatar = _avatarFile!.readAsBytesSync();
+
+        await updateAvatarWeb(newAvatar);
+      } else {
+        await updateAvatarNonWeb(_avatarFile!);
+      }
+      return 1;
+    } catch (e) {
+      throw (e);
+      return 2;
+    }
+  }
+
+  Future<void> _pickAvatar() async {
+    FilePickerResult? result =
+        await FilePicker.platform.pickFiles(type: FileType.image);
+    if (result != null) {
+      if (kIsWeb) {
+        // On web, use bytes to create an image
+        Uint8List? imageData = result.files.single.bytes;
+        if (imageData != null) {
+          avatarImage = Image.memory(imageData);
+          leading = avatarImage;
+        }
+      } else {
+        // On other platforms, use the file path to create an image
+        _avatarFile = File(result.files.single.path!);
+        avatarImage = Image.file(_avatarFile!);
+        leading = avatarImage;
+      }
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -178,7 +265,7 @@ class _SignUpState extends State<SignUp> {
                       padding: const EdgeInsets.only(bottom: 10.0),
                       child: Card(
                         borderOnForeground: true,
-                        color: Colors.grey.shade300,
+                        color: Colors.grey.shade200,
                         elevation: 0,
                         child: Padding(
                           padding: const EdgeInsets.all(10.0),
@@ -237,6 +324,13 @@ class _SignUpState extends State<SignUp> {
                           onTap: () => _selectDate(context),
                         ),
                       ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10.0),
+                      child: ListTile(
+                          title: Text('الصورة الشخصية'),
+                          leading: leading,
+                          onTap: _pickAvatar),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(8.0),

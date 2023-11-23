@@ -38,6 +38,7 @@ class _NotificationsState extends State<Notifications> {
       var latestCommentRecords = await pb
           .collection('circle_comments')
           .getList(page: page, perPage: 1, sort: '-created');
+
       var latestRequestRecords = await pb
           .collection('friend_requests')
           .getList(page: page, perPage: 1, sort: '-created');

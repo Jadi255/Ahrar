@@ -476,6 +476,19 @@ class _FriendRequestsState extends State<FriendRequests> {
                       ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('تم قبول طلب الصداقة')));
 
+                      String loggedinusername = "$fname $lname";
+
+                      // Create the alert
+                      final body = <String, dynamic>{
+                        "to": user['id'],
+                        "alert": "قبل المستخدم $loggedinusername طلب صداقتك",
+                        "seen": false,
+                        "title": "تم قبول طلب صداقة"
+                      };
+
+                      final alertRecord =
+                          await pb.collection('alerts').create(body: body);
+
                       var prefs = await SharedPreferences.getInstance();
                       var username = await prefs.getString('email');
                       var password = await prefs.getString('password');

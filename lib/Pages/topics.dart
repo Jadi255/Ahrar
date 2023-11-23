@@ -120,7 +120,7 @@ class _TopicSelectionState extends State<TopicSelection> {
 
 // ignore: must_be_immutable
 class DiscoverTopics extends StatefulWidget {
-  String topic;
+  late String topic;
   DiscoverTopics({super.key, required this.topic});
 
   @override
@@ -138,6 +138,7 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
   late String topic;
   String? filter = 'newest';
   String? timeRange;
+  bool _isTopicLoaded = false; // Add this line
 
   void initState() {
     super.initState();
@@ -145,6 +146,10 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
   }
 
   void fetchPosts() async {
+    var request = await pb.collection('topics').getOne(widget.topic);
+    var response = request.toJson();
+    topic = response['topic'];
+
     if (!_isLoading) {
       setState(() {
         _isLoading = true;
@@ -156,6 +161,7 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
         _postsWidgets.addAll(newPosts);
         _page += 1;
         _isLoading = false;
+        _isTopicLoaded = true; // Set the flag to true once the Future completes
       });
     }
   }
@@ -182,10 +188,6 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
       String? selectedTopicId,
       List<String>? topics}) async {
     Map data;
-
-    var request = await pb.collection('topics').getOne(widget.topic);
-    var response = request.toJson();
-    topic = response['topic'];
 
     if (isFiltering) {
       data = await filterCirclePosts(
@@ -654,21 +656,25 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
       int page = 1,
       String? filter,
       String? timeRange,
-      bool? isPublic,
       String? selectedTopicId}) async {
+    print(isPublic);
     String pbFilter = '';
     String pbSort = '-created';
     if (filter != null && filter == 'top') {
       pbSort = '-likes:length';
     }
-
     if (isPublic != null) {
       if (pbFilter.isNotEmpty) {
         pbFilter += ' && ';
       }
-      pbFilter += 'is_public = $isPublic || by.friends.id = "$userID"';
+      pbFilter += 'is_public = $isPublic';
     }
-    pbFilter += 'topic.id = \'${widget.topic}\'';
+    if (selectedTopicId != null && selectedTopicId.isNotEmpty) {
+      if (pbFilter.isNotEmpty) {
+        pbFilter += ' || ';
+      }
+      pbFilter += 'topic.id = \'$selectedTopicId\'';
+    }
 
     if (timeRange != null && timeRange != 'all') {
       DateTime now = DateTime.now();
@@ -708,6 +714,13 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isTopicLoaded) {
+      return Scaffold(
+          appBar: AppBar(
+            automaticallyImplyLeading: true,
+          ),
+          body: shimmer);
+    }
     bool isVisible = false;
     if (filter == 'top') {
       isVisible = true;

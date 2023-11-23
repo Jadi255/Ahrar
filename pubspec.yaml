@@ -51,6 +51,7 @@ dependencies:
   flutter_card_swiper: ^6.0.0
   connectivity_plus: ^5.0.1
   flutter_typeahead: ^4.8.0
+  path_provider: ^2.1.1
 
 dev_dependencies:
   flutter_test:
@@ -98,7 +99,7 @@ flutter:
      - assets/logo.svg
      - assets/logo2.svg
      - assets/logo.png
-     - assets/Handala.svg
+     - assets/placeholder.jpg
 
 
   #   - images/a_dot_ham.jpeg

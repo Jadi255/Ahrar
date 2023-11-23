@@ -32,11 +32,11 @@ class _CircleState extends State<Circle> {
   late String newestID;
   Map postItem = {};
   List commentsItem = [];
-  bool? isPublic = false;
+  bool? isPublic;
   List<String> topics = [];
   List<String> topicIDs = [];
-  String? filter = 'newest';
-  String? timeRange;
+  String? filter = "newest";
+  String? timeRange = 'today';
 
   late String selectedTopic;
   String selectedTopicId = '';
@@ -79,7 +79,6 @@ class _CircleState extends State<Circle> {
       {int limit = 7,
       int page = 1,
       bool isFiltering = false,
-      bool? isPublic,
       String? selectedTopicId,
       List<String>? topics}) async {
     Map data;
@@ -586,9 +585,7 @@ class _CircleState extends State<Circle> {
       });
     } else {
       circleSubscribe((event) async {
-        print(event);
         var newPost = event.toJson();
-        print(newPost);
         var posterRecord = await pb.collection('users').getOne(newPost['by']);
         Map userData = posterRecord.toJson();
         String by = '${userData['fname']} ${userData['lname']}';
@@ -598,8 +595,6 @@ class _CircleState extends State<Circle> {
         var posterAvatar =
             Image.network('$avatarUrl?token=${pb.authStore.token}');
 
-        print(newPost['by']);
-        print(posterAvatar);
         var postTime = DateFormat('dd/MM/yyyy · HH:mm')
             .format(DateTime.parse(newPost['created']).toLocal());
 
@@ -647,12 +642,8 @@ class _CircleState extends State<Circle> {
       int page = 1,
       String? filter,
       String? timeRange,
-      bool? isPublic,
       String? selectedTopicId}) async {
-    if (isPublic != true || isPublic == null) {
-      isPublic = false;
-    }
-
+    print(isPublic);
     String pbFilter = '';
     String pbSort = '-created';
     if (filter != null && filter == 'top') {
@@ -662,7 +653,7 @@ class _CircleState extends State<Circle> {
       if (pbFilter.isNotEmpty) {
         pbFilter += ' && ';
       }
-      pbFilter += 'is_public = $isPublic || by.friends.id = "$userID"';
+      pbFilter += 'is_public = $isPublic';
     }
     if (selectedTopicId != null && selectedTopicId.isNotEmpty) {
       if (pbFilter.isNotEmpty) {
@@ -697,7 +688,6 @@ class _CircleState extends State<Circle> {
           DateFormat('yyyy-MM-dd HH:mm:ss').format(startDate);
       pbFilter += 'created >= "$formattedStartDate"';
     }
-    print(pbFilter);
 
     final resultList = await pb.collection('circle_posts').getList(
           page: page,
@@ -705,7 +695,6 @@ class _CircleState extends State<Circle> {
           filter: pbFilter,
           sort: pbSort,
         );
-    print(resultList);
     return resultList.toJson();
   }
 
@@ -743,11 +732,7 @@ class _CircleState extends State<Circle> {
                   timeRange = null;
                   selectedTopicId = '';
                   var newPosts = await renderPosts(
-                      limit: 7,
-                      page: 1,
-                      isPublic: isPublic,
-                      topics: [],
-                      isFiltering: false);
+                      limit: 7, page: 1, topics: [], isFiltering: false);
                   setState(() {
                     isVisible = false;
                     _postsWidgets = newPosts;
@@ -776,8 +761,8 @@ class _CircleState extends State<Circle> {
                     },
                     onValueChanged: (bool? value) {
                       setState(() {
+                        print(value);
                         isPublic = value;
-                        print(isPublic);
                       });
                     },
                     groupValue: isPublic,
@@ -850,9 +835,7 @@ class _CircleState extends State<Circle> {
                               });
 
                           var newPosts = await renderPosts(
-                              isPublic: isPublic,
-                              topics: [selectedTopicId],
-                              isFiltering: true);
+                              topics: [selectedTopicId], isFiltering: true);
                           Navigator.of(context).pop(); // Add this line
                           setState(() {
                             _postsWidgets = newPosts;

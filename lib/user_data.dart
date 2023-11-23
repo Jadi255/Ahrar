@@ -1,6 +1,13 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pocketbase/pocketbase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:path_provider/path_provider.dart';
 
 final pb = PocketBase('https://ahrar.pockethost.io');
 
@@ -44,14 +51,6 @@ Future authenticate(email, password) async {
   }
 }
 
-Future signUp(Map<String, dynamic> body) async {
-  try {
-    await pb.collection('users').create(body: body);
-    return 1;
-  } catch (e) {
-    return 2;
-  }
-}
 
 Future<bool> checkUser() async {
   final prefs = await SharedPreferences.getInstance();

@@ -245,6 +245,20 @@ class _ViewProfileState extends State<ViewProfile> {
                       elevation: 0.5,
                       child: ListTile(
                         onTap: () async {
+                          var existingRequest = await pb
+                              .collection('friend_requests')
+                              .getList(
+                                  filter:
+                                      '(from = "$me" && to = "${account['id']}") || (from = "${account['id']}" && to = "$me")');
+
+                          if (existingRequest.toJson()['items'].length != 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'تم إرسال طلب صداقة مسبقاً')));
+                            return;
+                          }
+
                           final body = <String, dynamic>{
                             "from": me,
                             "to": account['id']
