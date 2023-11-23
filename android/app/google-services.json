@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "519776664484",
+    "project_id": "ahrar-app",
+    "storage_bucket": "ahrar-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:519776664484:android:c85aa6a68983dd8e065f31",
+        "android_client_info": {
+          "package_name": "com.example.tahrir"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTLvSYZzpWesgwQbTfw2nf8rUOchjW23c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
