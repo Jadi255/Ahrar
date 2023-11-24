@@ -173,6 +173,30 @@ class _SignUpState extends State<SignUp> {
       return;
     }
 
+    if (kIsWeb) {
+      if (_avatarBytes == null) {
+        setState(() {
+          btnText = const Text("متابعة");
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('الرجاء اضافة صورة شخصية')),
+          );
+        });
+        return;
+      }
+    } else {
+      if (_avatarFile == null) {
+        setState(() {
+          btnText = const Text("متابعة");
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('الرجاء اضافة صورة شخصية')),
+          );
+        });
+        return;
+      }
+    }
+
     try {
       var request = await pb.collection('users').create(body: body);
       var authResponse = await pb
@@ -186,31 +210,13 @@ class _SignUpState extends State<SignUp> {
       userID = pb.authStore.model.id;
 
       if (kIsWeb) {
-        if (_avatarBytes == null) {
-          setState(() {
-            btnText = const Text("متابعة");
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('الرجاء إدخال جميع البيانات')),
-            );
-          });
-          return;
+        if (_avatarBytes != null) {
+          await updateAvatarWeb();
         }
-
-        await updateAvatarWeb();
       } else {
-        if (_avatarFile == null) {
-          setState(() {
-            btnText = const Text("متابعة");
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('الرجاء إدخال جميع البيانات')),
-            );
-          });
-          return;
+        if (_avatarFile != null) {
+          await updateAvatarNonWeb();
         }
-
-        await updateAvatarNonWeb();
       }
 
       await authenticate(emailController.text, passwordController.text);
@@ -225,7 +231,9 @@ class _SignUpState extends State<SignUp> {
         await FilePicker.platform.pickFiles(type: FileType.image);
     if (result != null) {
       Uint8List? imageData = await result.files.single.bytes;
-      _avatarFile = await File(result.files.single.path!);
+      if (!kIsWeb) {
+        _avatarFile = await File(result.files.single.path!);
+      }
 
       if (imageData != null) {
         setState(() {

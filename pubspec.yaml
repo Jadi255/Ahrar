@@ -52,15 +52,16 @@ dependencies:
   connectivity_plus: ^5.0.1
   flutter_typeahead: ^4.8.0
   path_provider: ^2.1.1
+  uni_links: ^0.5.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_launcher_icons: ^0.13.1
 flutter_launcher_icons:
-  android: "launcher_icon"
+  android: "assets/logo.png"
   ios: true
-  image_path: "assets/icon.jpg"
+  image_path: "assets/logo.png"
   min_sdk_android: 21 # android min sdk min:16, default 21
   web:
     generate: true
@@ -69,7 +70,7 @@ flutter_launcher_icons:
     theme_color: "#FFFFFF"
   windows:
     generate: true
-    image_path: "assets/icon.jpg"
+    image_path: "assets/logo.png"
     icon_size: 48 # min:48, max:256, default: 48
   macos:
     generate: true
