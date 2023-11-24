@@ -1,12 +1,15 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:pocketbase/pocketbase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tahrir/Pages/circle.dart';
+import 'package:tahrir/home.dart';
 import 'package:tahrir/user_data.dart';
 import 'package:url_launcher/url_launcher.dart';
 import "styles.dart";
@@ -617,11 +620,29 @@ class _ShowPostsState extends State<ShowPosts> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             createCommentButton(context, post),
+            if (post['is_public']) createShareButton(post),
             createLikeDislikeButtons(post, setState),
           ],
         ),
       );
     });
+  }
+
+  Widget createShareButton(var post) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 5.0),
+      child: IconButton(
+        style: BlackTextButton,
+        onPressed: () async {
+          final url = 'ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
+          await Clipboard.setData(ClipboardData(text: url));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('تم نسخ رابط المنشور للمشاركة')),
+          );
+        },
+        icon: const Icon(Icons.share),
+      ),
+    );
   }
 
   Widget createLikeDislikeButtons(
@@ -739,5 +760,259 @@ class _ShowPostsState extends State<ShowPosts> {
             },
           ),
         ));
+  }
+}
+
+class ViewProfileExtern extends StatefulWidget {
+  String target;
+
+  ViewProfileExtern({super.key, required this.target});
+
+  @override
+  State<ViewProfileExtern> createState() => _ViewProfileExternState();
+}
+
+class _ViewProfileExternState extends State<ViewProfileExtern> {
+  Future<Widget> getUser() async {
+    String id = widget.target;
+
+    var record = await pb.collection('users').getOne(id);
+    var account = record.toJson();
+
+    var avatarUrl = pb.files.getUrl(record, record.toJson()['avatar']);
+
+    var avatar;
+    try {
+      avatar =
+          Image.network('$avatarUrl?token=${pb.authStore.token}', width: 250);
+    } catch (e) {
+      avatar = Image.network(
+          'https://png.pngtree.com/png-clipart/20210915/ourmid/pngtree-user-avatar-placeholder-png-image_3918418.jpg');
+    }
+
+    var username = '${account['fname']} ${account['lname']}';
+    var bio = account['about'];
+    var sex = 'female';
+    if (account['sex'] == 'male') {
+      sex = 'ذكر';
+    }
+
+    var birthday = account['birthday'].split(' ')[0];
+    var age = DateTime.now().year - DateTime.parse(birthday).year;
+    var joinDate = account['created'].split(' ')[0];
+
+    return Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: GestureDetector(
+                onTap: () {
+                  showDialog(
+                      context: context,
+                      builder: (context) {
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: InteractiveViewer(
+                            child: avatar,
+                          ),
+                        );
+                      });
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(250),
+                  child: avatar,
+                ),
+              ),
+            ),
+            Text(
+              username,
+              style: defaultText,
+              textScaler: const TextScaler.linear(1.25),
+            ),
+            Text(bio, style: defaultText),
+            const Divider(),
+            Directionality(
+              textDirection: TextDirection.rtl,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Card(
+                    color: Colors.white,
+                    surfaceTintColor: Colors.white,
+                    elevation: 0.5,
+                    child: ListTile(
+                      leading: const Icon(Icons.email),
+                      subtitle: Text(
+                        account['email'] ?? 'غير معرف',
+                        style: defaultText,
+                      ),
+                      title: const Text('البريد الإلكتروني'),
+                    ),
+                  ),
+                  Card(
+                    color: Colors.white,
+                    surfaceTintColor: Colors.white,
+                    elevation: 0.5,
+                    child: ListTile(
+                      leading: const Icon(Icons.person),
+                      subtitle: Text(
+                        sex,
+                        style: defaultText,
+                      ),
+                      title: const Text('الجنس'),
+                    ),
+                  ),
+                  Card(
+                    color: Colors.white,
+                    surfaceTintColor: Colors.white,
+                    elevation: 0.5,
+                    child: ListTile(
+                      leading: const Icon(Icons.cake),
+                      subtitle: Text(
+                        '$age عام  ($birthday)',
+                        style: defaultText,
+                      ),
+                      title: const Text('العمر'),
+                    ),
+                  ),
+                  Card(
+                    color: Colors.white,
+                    surfaceTintColor: Colors.white,
+                    elevation: 0.5,
+                    child: ListTile(
+                      leading: const Icon(Icons.date_range),
+                      subtitle: Text(
+                        joinDate,
+                        style: defaultText,
+                      ),
+                      title: const Text('تاريخ الإشتراك'),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          ],
+        ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: true,
+        leading: IconButton(
+          icon: Icon(Icons.login),
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+              return Home();
+            }));
+          },
+        ),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const VerticalDivider(),
+                RichText(
+                  text: TextSpan(
+                    style: defaultText,
+                    children: <InlineSpan>[
+                      TextSpan(
+                          text: 'أ',
+                          style: TextStyle(color: blackColor, fontSize: 24)),
+                      TextSpan(
+                          text: 'ح',
+                          style: TextStyle(color: redColor, fontSize: 24)),
+                      TextSpan(
+                          text: 'ر',
+                          style: TextStyle(color: greenColor, fontSize: 24)),
+                      TextSpan(
+                          text: 'ا',
+                          style: TextStyle(color: blackColor, fontSize: 24)),
+                      TextSpan(
+                          text: 'ر',
+                          style: TextStyle(color: redColor, fontSize: 24)),
+                    ],
+                  ),
+                )
+              ],
+            ),
+            GestureDetector(
+                child: SvgPicture.asset('assets/logo2.svg', width: 50),
+                onTap: () {
+                  showDialog(
+                      context: context,
+                      builder: (context) {
+                        return AboutDialog(
+                          applicationIcon:
+                              SvgPicture.asset('assets/logo2.svg', width: 55),
+                          applicationName: "أحرار",
+                          applicationLegalese: "تصميم جهاد ناصر الدين",
+                        );
+                      });
+                }),
+          ],
+        ),
+      ),
+      bottomSheet: Container(
+        width: double.infinity,
+        color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: TextButton(
+            onPressed: () {
+              
+              context.go('/');
+            },
+            style: TextButtonStyle,
+            child: Text(
+              'إنضم لمنصة أحرار',
+              textScaler: TextScaler.linear(1.15),
+              style: defaultText,
+            ),
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            FutureBuilder(
+                future: getUser(),
+                builder: (ctx, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.done) {
+                    if (snapshot.hasError) {
+                      return const Center(
+                        child: Text(
+                          'An error occurred',
+                        ),
+                      );
+                      // if we got our data
+                    } else if (snapshot.hasData) {
+                      // Extracting data from snapshot object
+                      final data = snapshot.data;
+                      return data!;
+                    }
+                  }
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(50.0),
+                        child: Center(child: shimmer),
+                      ),
+                      Padding(padding: EdgeInsets.only(bottom: 100))
+                    ],
+                  );
+                }),
+          ],
+        ),
+      ),
+    );
   }
 }

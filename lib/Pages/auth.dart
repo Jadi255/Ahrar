@@ -1,7 +1,9 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tahrir/home.dart';
 import '../user_data.dart';
 
 import 'styles.dart';
@@ -54,7 +56,9 @@ class _AuthState extends State<Auth> {
     switch (auth) {
       case 1:
         pb.authStore.save(pb.authStore.token, pb.authStore.model);
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+          return Home();
+        }));
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم تسجيل الدخول بنجاح')),
@@ -114,7 +118,7 @@ class _AuthState extends State<Auth> {
           children: [
             TextButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/signup');
+                ('/signup');
               },
               style: TextButtonStyle,
               child: (const Text("إنشاء حساب")),

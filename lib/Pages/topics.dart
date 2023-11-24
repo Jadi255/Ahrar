@@ -1,7 +1,9 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:pocketbase/pocketbase.dart';
 import 'package:tahrir/Pages/circle.dart';
@@ -304,12 +306,10 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
                     title: GestureDetector(
                         onTap: () {
                           if (post['by'] != userID) {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    ViewProfile(target: post['by']),
-                              ),
-                            );
+                            Navigator.of(context)
+                                .push(MaterialPageRoute(builder: (context) {
+                              return ViewProfile(target: post['by']);
+                            }));
                           }
                         },
                         child: Text(by, style: defaultText)),
@@ -604,11 +604,29 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             createCommentButton(context, post, commentCount, index),
+            if (post['is_public']) createShareButton(post),
             createLikeDislikeButtons(post, setState),
           ],
         ),
       );
     });
+  }
+
+  Widget createShareButton(var post) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 5.0),
+      child: IconButton(
+        style: BlackTextButton,
+        onPressed: () async {
+          final url = 'ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
+          await Clipboard.setData(ClipboardData(text: url));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('تم نسخ رابط المنشور للمشاركة')),
+          );
+        },
+        icon: const Icon(Icons.share),
+      ),
+    );
   }
 
   Widget createLikeDislikeButtons(

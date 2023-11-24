@@ -1,5 +1,8 @@
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
+import "package:flutter/services.dart";
+import "package:go_router/go_router.dart";
+import "package:shared_preferences/shared_preferences.dart";
 import "package:tahrir/Pages/profiles.dart";
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
@@ -29,10 +32,11 @@ class _HomeState extends State<Home> {
     const Profile(),
   ];
 
-  String buildNo = "241123/2";
+  String buildNo = "251123/1";
 
   @override
   void initState() {
+    WidgetsBinding.instance.addPostFrameCallback;
     super.initState();
     checkConnection();
     checkAlerts();
@@ -146,6 +150,17 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> checkConnection() async {
+    final prefs = await SharedPreferences.getInstance();
+    var email = prefs.getString('email');
+    var password = prefs.getString('password');
+
+    var req = await authenticate(email, password);
+    if (req != 1) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+        return Login();
+      }));
+    }
+
     final connectivityResult = await (Connectivity().checkConnectivity());
     Timer.periodic(const Duration(seconds: 50), (timer) async {
       if (connectivityResult == ConnectivityResult.none) {
@@ -200,6 +215,18 @@ class _HomeState extends State<Home> {
           ],
         ),
         actions: [
+          IconButton(
+            onPressed: () async {
+              var name = '$fname $lname';
+              final url =
+                  'قام $name بدعوتك إلى منصة أحرار\n\nhttps://ahrar.up.railway.app/#/viewProfileExtern/${userID}';
+              await Clipboard.setData(ClipboardData(text: url));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('تم نسخ رابط مشاركة الأصدقاء')),
+              );
+            },
+            icon: Icon(Icons.person_pin_rounded),
+          ),
           IconButton(
             onPressed: () {
               showModalBottomSheet(
@@ -294,8 +321,9 @@ class _SearchMenuState extends State<SearchMenu> {
           padding: const EdgeInsets.all(10.0),
           child: ListTile(
             onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => ViewProfile(target: friend['id'])));
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+                return ViewProfile(target: friend['id']);
+              }));
             },
             leading:
                 ClipOval(child: Image.network(avatarUrl, fit: BoxFit.cover)),

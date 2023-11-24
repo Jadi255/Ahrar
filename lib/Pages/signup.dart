@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../user_data.dart';
 import 'package:flutter/cupertino.dart';
@@ -220,7 +221,7 @@ class _SignUpState extends State<SignUp> {
       }
 
       await authenticate(emailController.text, passwordController.text);
-      Navigator.of(context).pushNamed('/home');
+      context.go('/');
     } catch (e) {
       throw e;
     }

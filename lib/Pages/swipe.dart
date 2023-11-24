@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:pocketbase/pocketbase.dart';
 import 'package:tahrir/Pages/profiles.dart';
@@ -124,11 +125,11 @@ class _SwipeCardsState extends State<SwipeCards> {
           GestureDetector(
             onTap: () {
               if (post['by'] != userID) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ViewProfile(target: post['by']),
-                  ),
-                );
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (context) {
+                  return ViewProfile(target: post['by']);
+                }));
+
               }
             },
             child: Row(

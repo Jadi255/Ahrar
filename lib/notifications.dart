@@ -162,7 +162,7 @@ class _NotificationsState extends State<Notifications> {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => ShowComments(
-                    post: parent,
+                    post: parent['id'],
                   ),
                 ),
               );

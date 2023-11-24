@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:tahrir/Pages/profiles.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -353,8 +354,9 @@ class _FriendsListState extends State<FriendsList> {
           padding: const EdgeInsets.all(10.0),
           child: ListTile(
             onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => ViewProfile(target: friend['id'])));
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+                return ViewProfile(target: friend['by']);
+              }));
             },
             leading:
                 ClipOval(child: Image.network(avatarUrl, fit: BoxFit.cover)),
@@ -445,9 +447,11 @@ class _FriendRequestsState extends State<FriendRequests> {
                   IconButton(
                     icon: const Icon(Icons.open_in_browser),
                     onPressed: () {
-                      Navigator.of(context).push(MaterialPageRoute(
-                          builder: (context) =>
-                              ViewProfile(target: user['id'])));
+                      Navigator.of(context)
+                          .push(MaterialPageRoute(builder: (context) {
+                        return ViewProfile(target: user['id']);
+                      }));
+
                     },
                   ),
                   IconButton(
