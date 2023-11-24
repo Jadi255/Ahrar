@@ -69,8 +69,7 @@ class _TopicSelectionState extends State<TopicSelection> {
               },
               leading: Icon(Icons.tag),
               title: Text(topic, style: defaultText),
-              subtitle:
-                  Text('منشور ${topicLengths[i]} · أحدث منشور:  ${lastEdit}'),
+              subtitle: Text('أحدث منشور:  ${lastEdit}'),
               trailing: Icon(Icons.arrow_forward_ios)),
         ),
       );
@@ -96,7 +95,11 @@ class _TopicSelectionState extends State<TopicSelection> {
             future: renderTopics(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return shimmer;
+                return Column(
+                  children: [
+                    Center(child: shimmer),
+                  ],
+                );
               }
               if (snapshot.hasError) {
                 return Center(
@@ -108,7 +111,11 @@ class _TopicSelectionState extends State<TopicSelection> {
                 var data = snapshot.data;
                 return data!;
               } else {
-                return shimmer;
+                return Column(
+                  children: [
+                    Center(child: shimmer),
+                  ],
+                );
               }
             },
           ),
@@ -460,15 +467,29 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
                             Navigator.of(context).pop();
                           },
                           child: InteractiveViewer(
-                            child: Image.network(imageUrls[0]),
+                            child: GestureDetector(
+                              onLongPress: () async {
+                                await launchUrl(Uri.parse(imageUrls[0]));
+                              },
+                              child: Image.network(imageUrls[0]),
+                            ),
                           ),
                         );
                       });
+                  setState(() {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('إضغط ضغطة طويلة على الصورة لحفظها')));
+                  });
                 },
-                child: Center(
-                  child: Image.network(
-                    imageUrls[0],
-                    fit: BoxFit.cover,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(0),
+                  child: Center(
+                    child: Image.network(
+                      height: 350,
+                      width: double.infinity,
+                      imageUrls[0],
+                      fit: BoxFit.fitWidth,
+                    ),
                   ),
                 ),
               ),
@@ -479,9 +500,13 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
                   pageSnapping: true,
                 ),
                 items: imageUrls.map((imageUrl) {
-                  return Builder(
-                    builder: (BuildContext context) {
+                  return FutureBuilder(
+                    future:
+                        Future.delayed(Duration(milliseconds: 500), () async {
                       return GestureDetector(
+                        onLongPress: () async {
+                          await launchUrl(Uri.parse(imageUrl));
+                        },
                         onTap: () {
                           showDialog(
                             context: context,
@@ -491,21 +516,46 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
                                   Navigator.of(context).pop();
                                 },
                                 child: InteractiveViewer(
-                                  child: Image.network(
-                                    imageUrl,
-                                  ),
+                                  child: Image.network(imageUrl),
                                 ),
                               );
                             },
                           );
+                          setState(() {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content:
+                                    Text('إضغط ضغطة طويلة على الصورة لحفظها')));
+                          });
                         },
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 5.0),
                           decoration:
                               const BoxDecoration(color: Colors.transparent),
-                          child: Image.network(imageUrl, fit: BoxFit.cover),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(0),
+                            child: Center(
+                              child: Image.network(
+                                height: 350,
+                                width: double.infinity,
+                                imageUrl,
+                                fit: BoxFit.fitWidth,
+                              ),
+                            ),
+                          ),
                         ),
                       );
+                    }),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(
+                            child:
+                                CupertinoActivityIndicator()); // or your custom loader
+                      } else if (snapshot.hasError) {
+                        return Text(
+                            'حدث خطأ نتيجة ضغط المستخدمين، الرجاء إعادة المحاولة');
+                      } else {
+                        return snapshot.data!;
+                      }
                     },
                   );
                 }).toList(),
@@ -526,7 +576,7 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
               future: createPostActions(post, ratio.value, index),
               builder: (BuildContext context, AsyncSnapshot<Widget> snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return shimmer; // or your custom loader
+                  return Center(child: shimmer); // or your custom loader
                 } else if (snapshot.hasError) {
                   return Text('Error: ${snapshot.error}');
                 } else {
@@ -548,12 +598,15 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
 
     commentsItem.add(records);
     return StatefulBuilder(builder: (context, setState) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          createCommentButton(context, post, commentCount, index),
-          createLikeDislikeButtons(post, setState),
-        ],
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            createCommentButton(context, post, commentCount, index),
+            createLikeDislikeButtons(post, setState),
+          ],
+        ),
       );
     });
   }
@@ -595,8 +648,7 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
         await updatePostLikesAndDislikes(post);
         ratio.value = post['likes'].length - post['dislikes'].length;
       },
-      icon:
-          Icon(Icons.arrow_drop_up, color: isLiked ? greenColor : Colors.black),
+      icon: Icon(Icons.thumb_up, color: isLiked ? greenColor : Colors.black),
     );
   }
 
@@ -617,8 +669,7 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
         await updatePostLikesAndDislikes(post);
         ratio.value = post['likes'].length - post['dislikes'].length;
       },
-      icon: Icon(Icons.arrow_drop_down,
-          color: isDisliked ? redColor : Colors.black),
+      icon: Icon(Icons.thumb_down, color: isDisliked ? redColor : Colors.black),
     );
   }
 
@@ -672,7 +723,6 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
       if (pbFilter.isNotEmpty) {
         pbFilter += ' && ';
       }
-      pbFilter += 'is_public = $isPublic';
     }
     if (selectedTopicId != null && selectedTopicId.isNotEmpty) {
       if (pbFilter.isNotEmpty) {
@@ -773,7 +823,7 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
             ],
             centerTitle: true,
             title: Text(
-              'فلترة ',
+              'ترتيب المنشورات',
               style: defaultText,
             ),
           ),
@@ -783,22 +833,6 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  CupertinoSlidingSegmentedControl<bool>(
-                    children: const {
-                      true: Text('منشورات عامة'),
-                      false: Text('أصدقائي'),
-                    },
-                    onValueChanged: (bool? value) {
-                      setState(() {
-                        isPublic = value;
-                      });
-                    },
-                    groupValue: isPublic,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10.0),
-                    child: const Divider(),
-                  ),
                   CupertinoSlidingSegmentedControl<String>(
                     children: const {
                       'newest': Text('الأحدث'),
@@ -870,7 +904,7 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
                           });
                           Navigator.of(context).pop(); // Add this line
                         },
-                        child: const Text('فلترة')),
+                        child: const Text('متابعة')),
                   ),
                 ],
               ),

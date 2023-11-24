@@ -1,4 +1,5 @@
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -496,15 +497,29 @@ class _ShowPostsState extends State<ShowPosts> {
                             Navigator.of(context).pop();
                           },
                           child: InteractiveViewer(
-                            child: Image.network(imageUrls[0]),
+                            child: GestureDetector(
+                              onLongPress: () async {
+                                await launchUrl(Uri.parse(imageUrls[0]));
+                              },
+                              child: Image.network(imageUrls[0]),
+                            ),
                           ),
                         );
                       });
+                  setState(() {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('إضغط ضغطة طويلة على الصورة لحفظها')));
+                  });
                 },
-                child: Center(
-                  child: Image.network(
-                    imageUrls[0],
-                    fit: BoxFit.cover,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(0),
+                  child: Center(
+                    child: Image.network(
+                      height: 350,
+                      width: double.infinity,
+                      imageUrls[0],
+                      fit: BoxFit.fitWidth,
+                    ),
                   ),
                 ),
               ),
@@ -515,9 +530,13 @@ class _ShowPostsState extends State<ShowPosts> {
                   pageSnapping: true,
                 ),
                 items: imageUrls.map((imageUrl) {
-                  return Builder(
-                    builder: (BuildContext context) {
+                  return FutureBuilder(
+                    future:
+                        Future.delayed(Duration(milliseconds: 500), () async {
                       return GestureDetector(
+                        onLongPress: () async {
+                          await launchUrl(Uri.parse(imageUrl));
+                        },
                         onTap: () {
                           showDialog(
                             context: context,
@@ -527,21 +546,46 @@ class _ShowPostsState extends State<ShowPosts> {
                                   Navigator.of(context).pop();
                                 },
                                 child: InteractiveViewer(
-                                  child: Image.network(
-                                    imageUrl,
-                                  ),
+                                  child: Image.network(imageUrl),
                                 ),
                               );
                             },
                           );
+                          setState(() {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content:
+                                    Text('إضغط ضغطة طويلة على الصورة لحفظها')));
+                          });
                         },
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 5.0),
                           decoration:
                               const BoxDecoration(color: Colors.transparent),
-                          child: Image.network(imageUrl, fit: BoxFit.cover),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(0),
+                            child: Center(
+                              child: Image.network(
+                                height: 350,
+                                width: double.infinity,
+                                imageUrl,
+                                fit: BoxFit.fitWidth,
+                              ),
+                            ),
+                          ),
                         ),
                       );
+                    }),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(
+                            child:
+                                CupertinoActivityIndicator()); // or your custom loader
+                      } else if (snapshot.hasError) {
+                        return Text(
+                            'حدث خطأ نتيجة ضغط المستخدمين، الرجاء إعادة المحاولة');
+                      } else {
+                        return snapshot.data!;
+                      }
                     },
                   );
                 }).toList(),
@@ -567,12 +611,15 @@ class _ShowPostsState extends State<ShowPosts> {
 
   Widget createPostActions(var post, int ratio) {
     return StatefulBuilder(builder: (context, setState) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          createCommentButton(context, post),
-          createLikeDislikeButtons(post, setState),
-        ],
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            createCommentButton(context, post),
+            createLikeDislikeButtons(post, setState),
+          ],
+        ),
       );
     });
   }
@@ -615,8 +662,7 @@ class _ShowPostsState extends State<ShowPosts> {
         likes.value = post['likes'].length;
         setState(() {});
       },
-      icon:
-          Icon(Icons.arrow_drop_up, color: isLiked ? greenColor : Colors.black),
+      icon: Icon(Icons.thumb_up, color: isLiked ? greenColor : Colors.black),
     );
   }
 
@@ -638,8 +684,7 @@ class _ShowPostsState extends State<ShowPosts> {
         dislikes.value = post['dislikes'].length;
         setState(() {});
       },
-      icon: Icon(Icons.arrow_drop_down,
-          color: isDisliked ? redColor : Colors.black),
+      icon: Icon(Icons.thumb_down, color: isDisliked ? redColor : Colors.black),
     );
   }
 

@@ -171,15 +171,29 @@ class _SwipeCardsState extends State<SwipeCards> {
                           Navigator.of(context).pop();
                         },
                         child: InteractiveViewer(
-                          child: Image.network(imageUrls[0]),
+                          child: GestureDetector(
+                            onLongPress: () async {
+                              await launchUrl(Uri.parse(imageUrls[0]));
+                            },
+                            child: Image.network(imageUrls[0]),
+                          ),
                         ),
                       );
                     });
+                setState(() {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('إضغط ضغطة طويلة على الصورة لحفظها')));
+                });
               },
-              child: Center(
-                child: Image.network(
-                  imageUrls[0],
-                  fit: BoxFit.cover,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(0),
+                child: Center(
+                  child: Image.network(
+                    height: 350,
+                    width: double.infinity,
+                    imageUrls[0],
+                    fit: BoxFit.fitWidth,
+                  ),
                 ),
               ),
             ),
@@ -190,9 +204,12 @@ class _SwipeCardsState extends State<SwipeCards> {
                 pageSnapping: true,
               ),
               items: imageUrls.map((imageUrl) {
-                return Builder(
-                  builder: (BuildContext context) {
+                return FutureBuilder(
+                  future: Future.delayed(Duration(milliseconds: 500), () async {
                     return GestureDetector(
+                      onLongPress: () async {
+                        await launchUrl(Uri.parse(imageUrl));
+                      },
                       onTap: () {
                         showDialog(
                           context: context,
@@ -202,21 +219,46 @@ class _SwipeCardsState extends State<SwipeCards> {
                                 Navigator.of(context).pop();
                               },
                               child: InteractiveViewer(
-                                child: Image.network(
-                                  imageUrl,
-                                ),
+                                child: Image.network(imageUrl),
                               ),
                             );
                           },
                         );
+                        setState(() {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content:
+                                  Text('إضغط ضغطة طويلة على الصورة لحفظها')));
+                        });
                       },
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 5.0),
                         decoration:
                             const BoxDecoration(color: Colors.transparent),
-                        child: Image.network(imageUrl, fit: BoxFit.cover),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(0),
+                          child: Center(
+                            child: Image.network(
+                              height: 350,
+                              width: double.infinity,
+                              imageUrl,
+                              fit: BoxFit.fitWidth,
+                            ),
+                          ),
+                        ),
                       ),
                     );
+                  }),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(
+                          child:
+                              CupertinoActivityIndicator()); // or your custom loader
+                    } else if (snapshot.hasError) {
+                      return Text(
+                          'حدث خطأ نتيجة ضغط المستخدمين، الرجاء إعادة المحاولة');
+                    } else {
+                      return snapshot.data!;
+                    }
                   },
                 );
               }).toList(),
@@ -278,7 +320,18 @@ class _SwipeCardsState extends State<SwipeCards> {
             )
           : null,
       body: _postWidgets.isEmpty
-          ? shimmer
+          ? Column(
+              children: [
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Text(
+                        'لا تزال هذه الخاصية قيد الإنشاء، نعتذر لوجود أخطاء'),
+                  ),
+                ),
+                shimmer,
+              ],
+            )
           : Padding(
               padding: const EdgeInsets.all(20),
               child: CardSwiper(

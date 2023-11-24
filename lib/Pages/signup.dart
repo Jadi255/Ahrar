@@ -30,8 +30,10 @@ class _SignUpState extends State<SignUp> {
   TextEditingController birthdayController = TextEditingController();
   TextDirection textDirection = TextDirection.ltr;
   File? _avatarFile;
+  Uint8List? _avatarBytes;
   late Image avatarImage;
   Widget leading = Icon(Icons.image);
+  bool webcheck = false;
 
   int _selectedValue = 0;
 
@@ -60,26 +62,39 @@ class _SignUpState extends State<SignUp> {
     }
   }
 
-  Future updateAvatarWeb(Uint8List newAvatar) async {
+  Future updateAvatarWeb() async {
+    if (_avatarBytes == null) {
+      print('No file was selected');
+      return;
+    }
+
     var filename = 'avatar.jpg'; // Replace with your desired filename format
     http.MultipartFile multipartFile;
 
     multipartFile = http.MultipartFile.fromBytes(
       'avatar',
-      newAvatar,
+      _avatarBytes!,
       filename: filename,
       contentType: MediaType(
           'image', 'jpeg'), // Replace with the appropriate content type
     );
-
-    await pb.collection('users').update(
-      pb.authStore.model.id,
-      files: [multipartFile],
-    );
+    try {
+      await pb.collection('users').update(
+        userID,
+        files: [multipartFile],
+      );
+    } catch (e) {
+      throw e;
+    }
   }
 
-  Future updateAvatarNonWeb(File newAvatar) async {
-    var path = newAvatar.path;
+  Future updateAvatarNonWeb() async {
+    if (_avatarFile == null) {
+      print('No file was selected');
+      return;
+    }
+
+    var path = _avatarFile!.path;
     var filename = 'avatar.jpg'; // Replace with your desired filename format
     http.MultipartFile multipartFile;
 
@@ -109,8 +124,6 @@ class _SignUpState extends State<SignUp> {
       sex = "male";
     }
 
-    print(_avatarFile);
-
     final body = <String, dynamic>{
       "email": emailController.text,
       "emailVisibility": true,
@@ -128,9 +141,10 @@ class _SignUpState extends State<SignUp> {
         body["fname"] == "" ||
         body["lname"] == "" ||
         body["sex"] == "" ||
-        body["birthday"] == "" ||
-        _avatarFile == null) {
+        body["birthday"] == "") {
       setState(() {
+        btnText = const Text("متابعة");
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('الرجاء إدخال جميع البيانات')),
         );
@@ -166,21 +180,43 @@ class _SignUpState extends State<SignUp> {
           .authWithPassword(body['email'], body['password']);
 
       var prefs = await SharedPreferences.getInstance();
-      prefs.setString('email', emailController.text);
-      prefs.setString('id', pb.authStore.model.id);
-      prefs.setString('password', passwordController.text);
+      await prefs.setString('email', emailController.text);
+      await prefs.setString('id', pb.authStore.model.id);
+      await prefs.setString('password', passwordController.text);
       userID = pb.authStore.model.id;
-      if (kIsWeb) {
-        Uint8List newAvatar = _avatarFile!.readAsBytesSync();
 
-        await updateAvatarWeb(newAvatar);
+      if (kIsWeb) {
+        if (_avatarBytes == null) {
+          setState(() {
+            btnText = const Text("متابعة");
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('الرجاء إدخال جميع البيانات')),
+            );
+          });
+          return;
+        }
+
+        await updateAvatarWeb();
       } else {
-        await updateAvatarNonWeb(_avatarFile!);
+        if (_avatarFile == null) {
+          setState(() {
+            btnText = const Text("متابعة");
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('الرجاء إدخال جميع البيانات')),
+            );
+          });
+          return;
+        }
+
+        await updateAvatarNonWeb();
       }
+
+      await authenticate(emailController.text, passwordController.text);
       Navigator.of(context).pushNamed('/home');
     } catch (e) {
       throw e;
-      return 2;
     }
   }
 
@@ -188,20 +224,29 @@ class _SignUpState extends State<SignUp> {
     FilePickerResult? result =
         await FilePicker.platform.pickFiles(type: FileType.image);
     if (result != null) {
-      if (kIsWeb) {
-        // On web, use bytes to create an image
-        Uint8List? imageData = result.files.single.bytes;
-        if (imageData != null) {
+      Uint8List? imageData = await result.files.single.bytes;
+      _avatarFile = await File(result.files.single.path!);
+
+      if (imageData != null) {
+        setState(() {
           avatarImage = Image.memory(imageData);
           leading = avatarImage;
+        });
+        if (kIsWeb) {
+          _avatarBytes = imageData;
         }
-      } else {
-        // On other platforms, use the file path to create an image
-        _avatarFile = File(result.files.single.path!);
-        avatarImage = Image.file(_avatarFile!);
-        leading = avatarImage;
       }
-      setState(() {});
+      if (_avatarFile != null) {
+        if (!kIsWeb) {
+          print(_avatarFile);
+          setState(() {
+            avatarImage = Image.file(_avatarFile!);
+            leading = avatarImage;
+          });
+
+          setState(() {});
+        }
+      }
     }
   }
 
@@ -338,7 +383,9 @@ class _SignUpState extends State<SignUp> {
                       child: ListTile(
                           title: Text('الصورة الشخصية'),
                           leading: leading,
-                          onTap: _pickAvatar),
+                          onTap: () async {
+                            await _pickAvatar();
+                          }),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(8.0),

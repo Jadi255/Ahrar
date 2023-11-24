@@ -29,7 +29,7 @@ class _HomeState extends State<Home> {
     const Profile(),
   ];
 
-  String buildNo = "241123";
+  String buildNo = "241123/2";
 
   @override
   void initState() {

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
@@ -377,15 +378,29 @@ class _CircleState extends State<Circle> {
                             Navigator.of(context).pop();
                           },
                           child: InteractiveViewer(
-                            child: Image.network(imageUrls[0]),
+                            child: GestureDetector(
+                              onLongPress: () async {
+                                await launchUrl(Uri.parse(imageUrls[0]));
+                              },
+                              child: Image.network(imageUrls[0]),
+                            ),
                           ),
                         );
                       });
+                  setState(() {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('إضغط ضغطة طويلة على الصورة لحفظها')));
+                  });
                 },
-                child: Center(
-                  child: Image.network(
-                    imageUrls[0],
-                    fit: BoxFit.cover,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(0),
+                  child: Center(
+                    child: Image.network(
+                      height: 350,
+                      width: double.infinity,
+                      imageUrls[0],
+                      fit: BoxFit.fitWidth,
+                    ),
                   ),
                 ),
               ),
@@ -396,9 +411,13 @@ class _CircleState extends State<Circle> {
                   pageSnapping: true,
                 ),
                 items: imageUrls.map((imageUrl) {
-                  return Builder(
-                    builder: (BuildContext context) {
+                  return FutureBuilder(
+                    future:
+                        Future.delayed(Duration(milliseconds: 500), () async {
                       return GestureDetector(
+                        onLongPress: () async {
+                          await launchUrl(Uri.parse(imageUrl));
+                        },
                         onTap: () {
                           showDialog(
                             context: context,
@@ -408,21 +427,46 @@ class _CircleState extends State<Circle> {
                                   Navigator.of(context).pop();
                                 },
                                 child: InteractiveViewer(
-                                  child: Image.network(
-                                    imageUrl,
-                                  ),
+                                  child: Image.network(imageUrl),
                                 ),
                               );
                             },
                           );
+                          setState(() {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content:
+                                    Text('إضغط ضغطة طويلة على الصورة لحفظها')));
+                          });
                         },
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 5.0),
                           decoration:
                               const BoxDecoration(color: Colors.transparent),
-                          child: Image.network(imageUrl, fit: BoxFit.cover),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(0),
+                            child: Center(
+                              child: Image.network(
+                                height: 350,
+                                width: double.infinity,
+                                imageUrl,
+                                fit: BoxFit.fitWidth,
+                              ),
+                            ),
+                          ),
                         ),
                       );
+                    }),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(
+                            child:
+                                CupertinoActivityIndicator()); // or your custom loader
+                      } else if (snapshot.hasError) {
+                        return Text(
+                            'حدث خطأ نتيجة ضغط المستخدمين، الرجاء إعادة المحاولة');
+                      } else {
+                        return snapshot.data!;
+                      }
                     },
                   );
                 }).toList(),
@@ -465,12 +509,15 @@ class _CircleState extends State<Circle> {
 
     commentsItem.add(records);
     return StatefulBuilder(builder: (context, setState) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          createCommentButton(context, post, commentCount, index),
-          createLikeDislikeButtons(post, setState),
-        ],
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            createCommentButton(context, post, commentCount, index),
+            createLikeDislikeButtons(post, setState),
+          ],
+        ),
       );
     });
   }
@@ -512,8 +559,7 @@ class _CircleState extends State<Circle> {
         await updatePostLikesAndDislikes(post);
         ratio.value = post['likes'].length - post['dislikes'].length;
       },
-      icon:
-          Icon(Icons.arrow_drop_up, color: isLiked ? greenColor : Colors.black),
+      icon: Icon(Icons.thumb_up, color: isLiked ? greenColor : Colors.black),
     );
   }
 
@@ -534,8 +580,7 @@ class _CircleState extends State<Circle> {
         await updatePostLikesAndDislikes(post);
         ratio.value = post['likes'].length - post['dislikes'].length;
       },
-      icon: Icon(Icons.arrow_drop_down,
-          color: isDisliked ? redColor : Colors.black),
+      icon: Icon(Icons.thumb_down, color: isDisliked ? redColor : Colors.black),
     );
   }
 
@@ -666,7 +711,6 @@ class _CircleState extends State<Circle> {
       if (pbFilter.isNotEmpty) {
         pbFilter += ' && ';
       }
-      pbFilter += 'is_public = $isPublic';
     }
     if (selectedTopicId != null && selectedTopicId.isNotEmpty) {
       if (pbFilter.isNotEmpty) {
@@ -757,7 +801,7 @@ class _CircleState extends State<Circle> {
             ],
             centerTitle: true,
             title: Text(
-              'فلترة ',
+              'ترتيب المنشورات',
               style: defaultText,
             ),
           ),
@@ -767,23 +811,6 @@ class _CircleState extends State<Circle> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  CupertinoSlidingSegmentedControl<bool>(
-                    children: const {
-                      true: Text('منشورات عامة'),
-                      false: Text('أصدقائي'),
-                    },
-                    onValueChanged: (bool? value) {
-                      setState(() {
-                        print(value);
-                        isPublic = value;
-                      });
-                    },
-                    groupValue: isPublic,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10.0),
-                    child: const Divider(),
-                  ),
                   CupertinoSlidingSegmentedControl<String>(
                     children: const {
                       'newest': Text('الأحدث'),
@@ -855,7 +882,7 @@ class _CircleState extends State<Circle> {
                           });
                           Navigator.of(context).pop(); // Add this line
                         },
-                        child: const Text('فلترة')),
+                        child: const Text('متابعة')),
                   ),
                 ],
               ),
@@ -1766,15 +1793,29 @@ class _ShowCommentsState extends State<ShowComments> {
                           Navigator.of(context).pop();
                         },
                         child: InteractiveViewer(
-                          child: Image.network(imageUrls[0]),
+                          child: GestureDetector(
+                            onLongPress: () async {
+                              await launchUrl(Uri.parse(imageUrls[0]));
+                            },
+                            child: Image.network(imageUrls[0]),
+                          ),
                         ),
                       );
                     });
+                setState(() {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('إضغط ضغطة طويلة على الصورة لحفظها')));
+                });
               },
-              child: Center(
-                child: Image.network(
-                  imageUrls[0],
-                  fit: BoxFit.cover,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(0),
+                child: Center(
+                  child: Image.network(
+                    height: 350,
+                    width: double.infinity,
+                    imageUrls[0],
+                    fit: BoxFit.fitWidth,
+                  ),
                 ),
               ),
             ),
@@ -1785,9 +1826,12 @@ class _ShowCommentsState extends State<ShowComments> {
                 pageSnapping: true,
               ),
               items: imageUrls.map((imageUrl) {
-                return Builder(
-                  builder: (BuildContext context) {
+                return FutureBuilder(
+                  future: Future.delayed(Duration(milliseconds: 500), () async {
                     return GestureDetector(
+                      onLongPress: () async {
+                        await launchUrl(Uri.parse(imageUrl));
+                      },
                       onTap: () {
                         showDialog(
                           context: context,
@@ -1797,21 +1841,46 @@ class _ShowCommentsState extends State<ShowComments> {
                                 Navigator.of(context).pop();
                               },
                               child: InteractiveViewer(
-                                child: Image.network(
-                                  imageUrl,
-                                ),
+                                child: Image.network(imageUrl),
                               ),
                             );
                           },
                         );
+                        setState(() {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content:
+                                  Text('إضغط ضغطة طويلة على الصورة لحفظها')));
+                        });
                       },
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 5.0),
                         decoration:
                             const BoxDecoration(color: Colors.transparent),
-                        child: Image.network(imageUrl, fit: BoxFit.cover),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(0),
+                          child: Center(
+                            child: Image.network(
+                              height: 350,
+                              width: double.infinity,
+                              imageUrl,
+                              fit: BoxFit.fitWidth,
+                            ),
+                          ),
+                        ),
                       ),
                     );
+                  }),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(
+                          child:
+                              CupertinoActivityIndicator()); // or your custom loader
+                    } else if (snapshot.hasError) {
+                      return Text(
+                          'حدث خطأ نتيجة ضغط المستخدمين، الرجاء إعادة المحاولة');
+                    } else {
+                      return snapshot.data!;
+                    }
                   },
                 );
               }).toList(),
@@ -1836,11 +1905,14 @@ class _ShowCommentsState extends State<ShowComments> {
 
   Widget createPostActions(var post, int ratio) {
     return StatefulBuilder(builder: (context, setState) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          createLikeDislikeButtons(post, setState),
-        ],
+      return Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            createLikeDislikeButtons(post, setState),
+          ],
+        ),
       );
     });
   }
@@ -1883,8 +1955,7 @@ class _ShowCommentsState extends State<ShowComments> {
         likes.value = post['likes'].length;
         setState(() {});
       },
-      icon:
-          Icon(Icons.arrow_drop_up, color: isLiked ? greenColor : Colors.black),
+      icon: Icon(Icons.thumb_up, color: isLiked ? greenColor : Colors.black),
     );
   }
 
@@ -1906,8 +1977,7 @@ class _ShowCommentsState extends State<ShowComments> {
         dislikes.value = post['dislikes'].length;
         setState(() {});
       },
-      icon: Icon(Icons.arrow_drop_down,
-          color: isDisliked ? redColor : Colors.black),
+      icon: Icon(Icons.thumb_down, color: isDisliked ? redColor : Colors.black),
     );
   }
 
@@ -2146,10 +2216,40 @@ class _ReportAbuseState extends State<ReportAbuse> {
             ],
           ),
           if (imageUrls.length == 1)
-            Center(
-              child: Image.network(
-                imageUrls[0],
-                fit: BoxFit.cover,
+            GestureDetector(
+              onTap: () {
+                showDialog(
+                    context: context,
+                    builder: (context) {
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: InteractiveViewer(
+                          child: GestureDetector(
+                            onLongPress: () async {
+                              await launchUrl(Uri.parse(imageUrls[0]));
+                            },
+                            child: Image.network(imageUrls[0]),
+                          ),
+                        ),
+                      );
+                    });
+                setState(() {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('إضغط ضغطة طويلة على الصورة لحفظها')));
+                });
+              },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(0),
+                child: Center(
+                  child: Image.network(
+                    height: 350,
+                    width: double.infinity,
+                    imageUrls[0],
+                    fit: BoxFit.fitWidth,
+                  ),
+                ),
               ),
             ),
           if (imageUrls.length > 1)
@@ -2159,14 +2259,61 @@ class _ReportAbuseState extends State<ReportAbuse> {
                 pageSnapping: true,
               ),
               items: imageUrls.map((imageUrl) {
-                return Builder(
-                  builder: (BuildContext context) {
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 5.0),
-                      decoration:
-                          const BoxDecoration(color: Colors.transparent),
-                      child: Image.network(imageUrl, fit: BoxFit.cover),
+                return FutureBuilder(
+                  future: Future.delayed(Duration(milliseconds: 500), () async {
+                    return GestureDetector(
+                      onLongPress: () async {
+                        await launchUrl(Uri.parse(imageUrl));
+                      },
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: InteractiveViewer(
+                                child: Image.network(imageUrl),
+                              ),
+                            );
+                          },
+                        );
+                        setState(() {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content:
+                                  Text('إضغط ضغطة طويلة على الصورة لحفظها')));
+                        });
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 5.0),
+                        decoration:
+                            const BoxDecoration(color: Colors.transparent),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(0),
+                          child: Center(
+                            child: Image.network(
+                              height: 350,
+                              width: double.infinity,
+                              imageUrl,
+                              fit: BoxFit.fitWidth,
+                            ),
+                          ),
+                        ),
+                      ),
                     );
+                  }),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(
+                          child:
+                              CupertinoActivityIndicator()); // or your custom loader
+                    } else if (snapshot.hasError) {
+                      return Text(
+                          'حدث خطأ نتيجة ضغط المستخدمين، الرجاء إعادة المحاولة');
+                    } else {
+                      return snapshot.data!;
+                    }
                   },
                 );
               }).toList(),

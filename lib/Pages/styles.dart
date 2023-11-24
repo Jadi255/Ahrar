@@ -161,57 +161,14 @@ Widget horizontalStripes = Row(
 );
 
 Widget shimmer = Shimmer.fromColors(
-  baseColor: Colors.grey[300]!,
+  baseColor: Colors.grey[700]!,
   highlightColor: Colors.grey[100]!,
   child: Column(
+    mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      ListTile(
-        title: Container(
-          width: double.infinity,
-          height: 12.0,
-          color: Colors.white,
-        ),
-        subtitle: Container(
-          width: double.infinity,
-          height: 12.0,
-          color: Colors.white,
-        ),
-      ),
-      ListTile(
-        title: Container(
-          width: double.infinity,
-          height: 12.0,
-          color: Colors.white,
-        ),
-        subtitle: Container(
-          width: double.infinity,
-          height: 12.0,
-          color: Colors.white,
-        ),
-      ),
-      ListTile(
-        title: Container(
-          width: double.infinity,
-          height: 12.0,
-          color: Colors.white,
-        ),
-        subtitle: Container(
-          width: double.infinity,
-          height: 12.0,
-          color: Colors.white,
-        ),
-      ),
-      ListTile(
-        title: Container(
-          width: double.infinity,
-          height: 12.0,
-          color: Colors.white,
-        ),
-        subtitle: Container(
-          width: double.infinity,
-          height: 12.0,
-          color: Colors.white,
-        ),
+      Padding(
+        padding: const EdgeInsets.all(50.0),
+        child: SvgPicture.asset("assets/logo2.svg", height: 300),
       ),
     ],
   ),
