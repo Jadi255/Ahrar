@@ -618,7 +618,8 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
       child: IconButton(
         style: BlackTextButton,
         onPressed: () async {
-          final url = 'ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
+          final url =
+              'https://ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
           await Clipboard.setData(ClipboardData(text: url));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('تم نسخ رابط المنشور للمشاركة')),
@@ -651,10 +652,10 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
 
   Widget createLikeButton(
       BuildContext context, var post, ValueNotifier<int> ratio) {
-    bool isLiked = post['likes'].contains(pb.authStore.model.id);
-    bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
     return IconButton(
       onPressed: () async {
+        bool isLiked = post['likes'].contains(pb.authStore.model.id);
+        bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
         if (!isLiked) {
           post['likes'].add(pb.authStore.model.id);
           if (isDisliked) {
@@ -665,8 +666,12 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
         }
         await updatePostLikesAndDislikes(post);
         ratio.value = post['likes'].length - post['dislikes'].length;
+        setState(() {});
       },
-      icon: Icon(Icons.thumb_up, color: isLiked ? greenColor : Colors.black),
+      icon: Icon(Icons.thumb_up,
+          color: post['likes'].contains(pb.authStore.model.id)
+              ? greenColor
+              : Colors.black),
     );
   }
 
@@ -707,10 +712,6 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
         icon: Row(
           children: [
             const Icon(Icons.comment),
-            Padding(
-              padding: const EdgeInsets.only(left: 5),
-              child: Text('$commentCount'),
-            ),
           ],
         ),
       ),

@@ -634,7 +634,8 @@ class _ShowPostsState extends State<ShowPosts> {
       child: IconButton(
         style: BlackTextButton,
         onPressed: () async {
-          final url = 'ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
+          final url =
+              'https://ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
           await Clipboard.setData(ClipboardData(text: url));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('تم نسخ رابط المنشور للمشاركة')),
@@ -666,11 +667,11 @@ class _ShowPostsState extends State<ShowPosts> {
   }
 
   Widget createLikeButton(
-      BuildContext context, var post, ValueNotifier<int> likes) {
-    bool isLiked = post['likes'].contains(pb.authStore.model.id);
-    bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
+      BuildContext context, var post, ValueNotifier<int> ratio) {
     return IconButton(
       onPressed: () async {
+        bool isLiked = post['likes'].contains(pb.authStore.model.id);
+        bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
         if (!isLiked) {
           post['likes'].add(pb.authStore.model.id);
           if (isDisliked) {
@@ -680,15 +681,18 @@ class _ShowPostsState extends State<ShowPosts> {
           post['likes'].remove(pb.authStore.model.id);
         }
         await updatePostLikesAndDislikes(post);
-        likes.value = post['likes'].length;
+        ratio.value = post['likes'].length - post['dislikes'].length;
         setState(() {});
       },
-      icon: Icon(Icons.thumb_up, color: isLiked ? greenColor : Colors.black),
+      icon: Icon(Icons.thumb_up,
+          color: post['likes'].contains(pb.authStore.model.id)
+              ? greenColor
+              : Colors.black),
     );
   }
 
   Widget createDislikeButton(
-      BuildContext context, var post, ValueNotifier<int> dislikes) {
+      BuildContext context, var post, ValueNotifier<int> ratio) {
     bool isLiked = post['likes'].contains(pb.authStore.model.id);
     bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
     return IconButton(
@@ -702,8 +706,7 @@ class _ShowPostsState extends State<ShowPosts> {
           post['dislikes'].remove(pb.authStore.model.id);
         }
         await updatePostLikesAndDislikes(post);
-        dislikes.value = post['dislikes'].length;
-        setState(() {});
+        ratio.value = post['likes'].length - post['dislikes'].length;
       },
       icon: Icon(Icons.thumb_down, color: isDisliked ? redColor : Colors.black),
     );
@@ -723,7 +726,9 @@ class _ShowPostsState extends State<ShowPosts> {
             ),
           );
         },
-        icon: const Row(children: [Icon(Icons.comment)]),
+        icon: const Row(children: [
+          Icon(Icons.comment),
+        ]),
       ),
     );
   }
@@ -967,7 +972,6 @@ class _ViewProfileExternState extends State<ViewProfileExtern> {
           padding: const EdgeInsets.all(20.0),
           child: TextButton(
             onPressed: () {
-              
               context.go('/');
             },
             style: TextButtonStyle,

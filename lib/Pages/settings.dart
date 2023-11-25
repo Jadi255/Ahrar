@@ -34,8 +34,7 @@ class _SettingsState extends State<Settings> {
             onTap: () async {
               pb.authStore.clear();
               var prefs = await SharedPreferences.getInstance();
-
-              Navigator.of(context).pushReplacementNamed('/login');
+              context.go('/login');
             },
           ),
         ),
@@ -451,7 +450,6 @@ class _FriendRequestsState extends State<FriendRequests> {
                           .push(MaterialPageRoute(builder: (context) {
                         return ViewProfile(target: user['id']);
                       }));
-
                     },
                   ),
                   IconButton(

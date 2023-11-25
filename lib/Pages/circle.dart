@@ -532,7 +532,8 @@ class _CircleState extends State<Circle> {
       child: IconButton(
         style: BlackTextButton,
         onPressed: () async {
-          final url = 'ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
+          final url =
+              'https://ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
           await Clipboard.setData(ClipboardData(text: url));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('تم نسخ رابط المنشور للمشاركة')),
@@ -565,10 +566,10 @@ class _CircleState extends State<Circle> {
 
   Widget createLikeButton(
       BuildContext context, var post, ValueNotifier<int> ratio) {
-    bool isLiked = post['likes'].contains(pb.authStore.model.id);
-    bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
     return IconButton(
       onPressed: () async {
+        bool isLiked = post['likes'].contains(pb.authStore.model.id);
+        bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
         if (!isLiked) {
           post['likes'].add(pb.authStore.model.id);
           if (isDisliked) {
@@ -579,8 +580,12 @@ class _CircleState extends State<Circle> {
         }
         await updatePostLikesAndDislikes(post);
         ratio.value = post['likes'].length - post['dislikes'].length;
+        setState(() {});
       },
-      icon: Icon(Icons.thumb_up, color: isLiked ? greenColor : Colors.black),
+      icon: Icon(Icons.thumb_up,
+          color: post['likes'].contains(pb.authStore.model.id)
+              ? greenColor
+              : Colors.black),
     );
   }
 
@@ -613,17 +618,12 @@ class _CircleState extends State<Circle> {
         style: BlackTextButton,
         onPressed: () {
           Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-            return ShowComments(post:post['id']);
+            return ShowComments(post: post['id']);
           }));
-
         },
         icon: Row(
           children: [
             const Icon(Icons.comment),
-            Padding(
-              padding: const EdgeInsets.only(left: 5),
-              child: Text('$commentCount'),
-            ),
           ],
         ),
       ),
@@ -1506,8 +1506,13 @@ class _ShowCommentsState extends State<ShowComments> {
     Widget header = GestureDetector(
       onTap: () {
         if (post['by'] != userID) {
-          Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => ViewProfile(target: post['by'])));
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => ViewProfile(
+                target: post['by'],
+              ),
+            ),
+          );
         }
       },
       child: Row(
@@ -1645,8 +1650,11 @@ class _ShowCommentsState extends State<ShowComments> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(10.0),
-                child: SelectableText(
-                  post['comment'],
+                child: SelectableLinkify(
+                  onOpen: (link) async {
+                    await launchUrl(Uri.parse(link.url));
+                  },
+                  text: post['comment'],
                   textAlign:
                       isArabic(post['post']) ? TextAlign.right : TextAlign.left,
                 ),
@@ -1948,7 +1956,8 @@ class _ShowCommentsState extends State<ShowComments> {
       child: IconButton(
         style: BlackTextButton,
         onPressed: () async {
-          final url = 'ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
+          final url =
+              'https://ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
           await Clipboard.setData(ClipboardData(text: url));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('تم نسخ رابط المنشور للمشاركة')),
@@ -1978,13 +1987,12 @@ class _ShowCommentsState extends State<ShowComments> {
       ],
     );
   }
-
   Widget createLikeButton(
-      BuildContext context, var post, ValueNotifier<int> likes) {
-    bool isLiked = post['likes'].contains(pb.authStore.model.id);
-    bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
+      BuildContext context, var post, ValueNotifier<int> ratio) {
     return IconButton(
       onPressed: () async {
+        bool isLiked = post['likes'].contains(pb.authStore.model.id);
+        bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
         if (!isLiked) {
           post['likes'].add(pb.authStore.model.id);
           if (isDisliked) {
@@ -1994,15 +2002,18 @@ class _ShowCommentsState extends State<ShowComments> {
           post['likes'].remove(pb.authStore.model.id);
         }
         await updatePostLikesAndDislikes(post);
-        likes.value = post['likes'].length;
+        ratio.value = post['likes'].length - post['dislikes'].length;
         setState(() {});
       },
-      icon: Icon(Icons.thumb_up, color: isLiked ? greenColor : Colors.black),
+      icon: Icon(Icons.thumb_up,
+          color: post['likes'].contains(pb.authStore.model.id)
+              ? greenColor
+              : Colors.black),
     );
   }
 
   Widget createDislikeButton(
-      BuildContext context, var post, ValueNotifier<int> dislikes) {
+      BuildContext context, var post, ValueNotifier<int> ratio) {
     bool isLiked = post['likes'].contains(pb.authStore.model.id);
     bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
     return IconButton(
@@ -2016,8 +2027,7 @@ class _ShowCommentsState extends State<ShowComments> {
           post['dislikes'].remove(pb.authStore.model.id);
         }
         await updatePostLikesAndDislikes(post);
-        dislikes.value = post['dislikes'].length;
-        setState(() {});
+        ratio.value = post['likes'].length - post['dislikes'].length;
       },
       icon: Icon(Icons.thumb_down, color: isDisliked ? redColor : Colors.black),
     );
@@ -2035,41 +2045,44 @@ class _ShowCommentsState extends State<ShowComments> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(automaticallyImplyLeading: true),
-      bottomSheet: Container(
-        padding: const EdgeInsets.all(10),
-        color: Colors.white,
-        child: Row(
-          children: [
-            Flexible(
-              child: StatefulBuilder(builder: (context, setState) {
-                return TextField(
-                  onChanged: (value) {
-                    setState(() {
-                      textDirection = RegExp(r'[\u0600-\u06FF]').hasMatch(value)
-                          ? TextDirection.rtl
-                          : TextDirection.ltr;
-                    });
-                  },
+      bottomSheet: StatefulBuilder(builder: (context, setState) {
+        return Container(
+          padding: const EdgeInsets.all(10),
+          color: Colors.white,
+          child: Row(
+            children: [
+              Flexible(
+                child: StatefulBuilder(builder: (context, setState) {
+                  return TextField(
+                    onChanged: (value) {
+                      setState(() {
+                        textDirection =
+                            RegExp(r'[\u0600-\u06FF]').hasMatch(value)
+                                ? TextDirection.rtl
+                                : TextDirection.ltr;
+                      });
+                    },
 
-                  keyboardType: TextInputType.multiline, // Add this line
-                  maxLines: null, // Add this line
+                    keyboardType: TextInputType.multiline, // Add this line
+                    maxLines: null, // Add this line
 
-                  controller: controller,
-                  decoration:
-                      const InputDecoration(hintText: "إضافة تعليق جديد"),
-                );
-              }),
-            ),
-            isPosting // Check if isPosting is true
-                ? CupertinoActivityIndicator() // Show activity indicator
-                : IconButton(
-                    // Else, show the button
-                    onPressed: postComment,
-                    icon: const Icon(Icons.send),
-                  ),
-          ],
-        ),
-      ),
+                    controller: controller,
+                    decoration:
+                        const InputDecoration(hintText: "إضافة تعليق جديد"),
+                  );
+                }),
+              ),
+              isPosting // Check if isPosting is true
+                  ? CupertinoActivityIndicator() // Show activity indicator
+                  : IconButton(
+                      // Else, show the button
+                      onPressed: postComment,
+                      icon: const Icon(Icons.send),
+                    ),
+            ],
+          ),
+        );
+      }),
       body: Padding(
         padding: const EdgeInsets.only(bottom: 5),
         child: SingleChildScrollView(
@@ -2637,7 +2650,8 @@ class _ShowCommentsExternState extends State<ShowCommentsExtern> {
       child: IconButton(
         style: BlackTextButton,
         onPressed: () async {
-          final url = 'ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
+          final url =
+              'https://ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
           await Clipboard.setData(ClipboardData(text: url));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('تم نسخ رابط المنشور للمشاركة')),
@@ -2667,13 +2681,12 @@ class _ShowCommentsExternState extends State<ShowCommentsExtern> {
       ],
     );
   }
-
   Widget createLikeButton(
-      BuildContext context, var post, ValueNotifier<int> likes) {
-    bool isLiked = post['likes'].contains(pb.authStore.model.id);
-    bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
+      BuildContext context, var post, ValueNotifier<int> ratio) {
     return IconButton(
       onPressed: () async {
+        bool isLiked = post['likes'].contains(pb.authStore.model.id);
+        bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
         if (!isLiked) {
           post['likes'].add(pb.authStore.model.id);
           if (isDisliked) {
@@ -2683,15 +2696,18 @@ class _ShowCommentsExternState extends State<ShowCommentsExtern> {
           post['likes'].remove(pb.authStore.model.id);
         }
         await updatePostLikesAndDislikes(post);
-        likes.value = post['likes'].length;
+        ratio.value = post['likes'].length - post['dislikes'].length;
         setState(() {});
       },
-      icon: Icon(Icons.thumb_up, color: isLiked ? greenColor : Colors.black),
+      icon: Icon(Icons.thumb_up,
+          color: post['likes'].contains(pb.authStore.model.id)
+              ? greenColor
+              : Colors.black),
     );
   }
 
   Widget createDislikeButton(
-      BuildContext context, var post, ValueNotifier<int> dislikes) {
+      BuildContext context, var post, ValueNotifier<int> ratio) {
     bool isLiked = post['likes'].contains(pb.authStore.model.id);
     bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
     return IconButton(
@@ -2705,12 +2721,12 @@ class _ShowCommentsExternState extends State<ShowCommentsExtern> {
           post['dislikes'].remove(pb.authStore.model.id);
         }
         await updatePostLikesAndDislikes(post);
-        dislikes.value = post['dislikes'].length;
-        setState(() {});
+        ratio.value = post['likes'].length - post['dislikes'].length;
       },
       icon: Icon(Icons.thumb_down, color: isDisliked ? redColor : Colors.black),
     );
   }
+
 
   Future<void> updatePostLikesAndDislikes(var post) async {
     final body = <String, dynamic>{
