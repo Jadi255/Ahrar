@@ -1,8 +1,10 @@
+import "dart:io";
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
 import "package:go_router/go_router.dart";
 import "package:shared_preferences/shared_preferences.dart";
+import "package:tahrir/Pages/friends.dart";
 import "package:tahrir/Pages/profiles.dart";
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
@@ -27,21 +29,41 @@ class _HomeState extends State<Home> {
   int _currentIndex = 0;
   final List<Widget> _children = [
     const Circle(),
+    const FriendsCircle(),
     const TopicSelection(),
     const SwipeCards(),
     const Profile(),
   ];
 
-  String buildNo = "251123/2";
+  String buildNo = "251123/5";
 
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback;
     super.initState();
-    checkConnection();
-    checkAlerts();
-    if (!kIsWeb) {
-      checkUpdates();
+    checkAuth();
+    Future.delayed(Duration.zero, () {
+      checkAlerts();
+      if (!kIsWeb) {
+        if (Platform.isAndroid) {
+          checkUpdates();
+        }
+      }
+    });
+  }
+
+  Future checkAuth() async {
+    if (userID == null) {
+      final prefs = await SharedPreferences.getInstance();
+
+      String? email = await prefs.getString('email');
+      String? password = await prefs.getString('password');
+
+      var checkAuth = await authenticate(email, password);
+
+      if (checkAuth != 1) {
+        context.go('/login');
+      }
     }
   }
 
@@ -149,32 +171,44 @@ class _HomeState extends State<Home> {
         });
   }
 
-  Future<void> checkConnection() async {
-    final prefs = await SharedPreferences.getInstance();
-    var email = prefs.getString('email');
-    var password = prefs.getString('password');
-
-    var req = await authenticate(email, password);
-    if (req != 1) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-        return Login();
-      }));
-    }
-
-    final connectivityResult = await (Connectivity().checkConnectivity());
-    Timer.periodic(const Duration(seconds: 50), (timer) async {
-      if (connectivityResult == ConnectivityResult.none) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-          return NoConnection();
-        }));
-      }
-    });
-  }
-
   void onTabTapped(int index) {
     setState(() {
       _currentIndex = index;
     });
+  }
+
+  void showBuildVer() {
+    showDialog(
+        barrierDismissible: true,
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.black,
+            iconColor: Colors.black,
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'معلومات الإصدار',
+                  textScaler: TextScaler.linear(0.75),
+                ),
+              ],
+            ),
+            content: Padding(
+              padding: EdgeInsets.all(20),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    Text(
+                        textDirection: TextDirection.rtl,
+                        'إصدار رقم $buildNo\nتصميم جهاد ناصرالدين (C) ${DateTime.now().year}')
+                  ],
+                ),
+              ),
+            ),
+          );
+        });
   }
 
   @override
@@ -188,27 +222,11 @@ class _HomeState extends State<Home> {
             Row(
               children: [
                 const VerticalDivider(),
-                RichText(
-                  text: TextSpan(
-                    style: defaultText,
-                    children: <InlineSpan>[
-                      TextSpan(
-                          text: 'أ',
-                          style: TextStyle(color: blackColor, fontSize: 24)),
-                      TextSpan(
-                          text: 'ح',
-                          style: TextStyle(color: redColor, fontSize: 24)),
-                      TextSpan(
-                          text: 'ر',
-                          style: TextStyle(color: greenColor, fontSize: 24)),
-                      TextSpan(
-                          text: 'ا',
-                          style: TextStyle(color: blackColor, fontSize: 24)),
-                      TextSpan(
-                          text: 'ر',
-                          style: TextStyle(color: redColor, fontSize: 24)),
-                    ],
-                  ),
+                GestureDetector(
+                  onTap: () {
+                    showBuildVer();
+                  },
+                  child: coloredLogo,
                 )
               ],
             ),
@@ -250,6 +268,10 @@ class _HomeState extends State<Home> {
             label: "الرئيسية",
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.people),
+            label: "أصدقائي",
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.tag),
             label: "مواضيع",
           ),
@@ -285,12 +307,11 @@ class _SearchMenuState extends State<SearchMenu> {
       return;
     }
     setState(() {
-      searchResults = shimmer;
+      searchResults = Center(child: shimmer);
     });
 
     var request = await pb.collection('users').getList(
-          filter:
-              'email ?~ "${controller.text}" || fname ?~ "${controller.text}" || lname ?~ "${controller.text}"',
+          filter: 'full_name ?~ "${controller.text}"',
         );
 
     var result = request.toJson()['items'];
@@ -350,7 +371,7 @@ class _SearchMenuState extends State<SearchMenu> {
         ),
         centerTitle: true,
       ),
-      body: searchResults,
+      body: SingleChildScrollView(child: searchResults),
       bottomSheet: Container(
         color: Colors.white,
         child: Padding(
@@ -374,8 +395,7 @@ class _SearchMenuState extends State<SearchMenu> {
                     maxLines: null, // Add this line
 
                     controller: controller,
-                    decoration: const InputDecoration(
-                        hintText: "الإسم أو البريد الإلكتروني"),
+                    decoration: const InputDecoration(hintText: "ادخل الاسم"),
                   );
                 })),
               ),

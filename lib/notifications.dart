@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tahrir/Pages/circle.dart';
@@ -161,9 +162,9 @@ class _NotificationsState extends State<Notifications> {
               }
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => ShowComments(
-                    post: parent['id'],
-                  ),
+                  builder: (context) {
+                    return ShowComments(post: parent['id']);
+                  },
                 ),
               );
             },
@@ -202,9 +203,9 @@ class _NotificationsState extends State<Notifications> {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => ShowComments(
-                  post: post['id'],
-                ),
+                builder: (context) {
+                  return ShowComments(post: post['id']);
+                },
               ),
             );
           },
@@ -242,8 +243,13 @@ class _NotificationsState extends State<Notifications> {
             surfaceTintColor: cardColor,
             child: ListTile(
               onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => const FriendRequests()));
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) {
+                      return FriendRequests();
+                    },
+                  ),
+                );
               },
               title: Text(postTime, textScaler: const TextScaler.linear(0.75)),
               subtitle: Text(

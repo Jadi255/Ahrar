@@ -364,7 +364,6 @@ class _FriendsListState extends State<FriendsList> {
         ),
       ));
     }
-
     return page;
   }
 
@@ -379,31 +378,33 @@ class _FriendsListState extends State<FriendsList> {
         ),
         centerTitle: true,
       ),
-      body: FutureBuilder(
-          future: getFriends(),
-          builder: (ctx, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done) {
-              if (snapshot.hasError) {
-                return const Center(
-                  child: Text(
-                    'An error occurred',
-                  ),
-                );
+      body: SingleChildScrollView(
+        child: FutureBuilder(
+            future: getFriends(),
+            builder: (ctx, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done) {
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text(
+                      'An error occurred',
+                    ),
+                  );
 
-                // if we got our data
-              } else if (snapshot.hasData) {
-                // Extracting data from snapshot object
-                final data = snapshot.data;
-                return SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Column(children: data),
-                  ),
-                );
+                  // if we got our data
+                } else if (snapshot.hasData) {
+                  // Extracting data from snapshot object
+                  final data = snapshot.data;
+                  return SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Column(children: data),
+                    ),
+                  );
+                }
               }
-            }
-            return shimmer;
-          }),
+              return Center(child: shimmer);
+            }),
+      ),
     );
   }
 }
@@ -530,31 +531,36 @@ class _FriendRequestsState extends State<FriendRequests> {
         ),
         centerTitle: true,
       ),
-      body: FutureBuilder(
-          future: getRequests(),
-          builder: (ctx, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done) {
-              if (snapshot.hasError) {
-                return const Center(
-                  child: Text(
-                    'An error occurred',
-                  ),
-                );
+      body: SingleChildScrollView(
+        child: FutureBuilder(
+            future: getRequests(),
+            builder: (ctx, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done) {
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text(
+                      'An error occurred',
+                    ),
+                  );
 
-                // if we got our data
-              } else if (snapshot.hasData) {
-                // Extracting data from snapshot object
-                final data = snapshot.data;
-                return SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Column(children: data),
-                  ),
-                );
+                  // if we got our data
+                } else if (snapshot.hasData) {
+                  // Extracting data from snapshot object
+                  final data = snapshot.data;
+                  return SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Column(children: data),
+                    ),
+                  );
+                }
               }
-            }
-            return shimmer;
-          }),
+              return Padding(
+                padding: const EdgeInsets.all(10.0),
+                child: Center(child: shimmer),
+              );
+            }),
+      ),
     );
   }
 }

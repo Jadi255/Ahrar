@@ -56,10 +56,7 @@ class _AuthState extends State<Auth> {
     switch (auth) {
       case 1:
         pb.authStore.save(pb.authStore.token, pb.authStore.model);
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-          return Home();
-        }));
-
+        context.go('/');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم تسجيل الدخول بنجاح')),
         );
@@ -118,7 +115,7 @@ class _AuthState extends State<Auth> {
           children: [
             TextButton(
               onPressed: () {
-                ('/signup');
+                context.go('/signUp');
               },
               style: TextButtonStyle,
               child: (const Text("إنشاء حساب")),

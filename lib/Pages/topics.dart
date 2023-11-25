@@ -83,6 +83,7 @@ class _TopicSelectionState extends State<TopicSelection> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text(
           'إختر موضوع',
           style: defaultText,
@@ -791,9 +792,10 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
     if (!_isTopicLoaded) {
       return Scaffold(
           appBar: AppBar(
+            title: coloredLogo,
             automaticallyImplyLeading: true,
           ),
-          body: shimmer);
+          body: Center(child: shimmer));
     }
     bool isVisible = false;
     if (filter == 'top') {
@@ -998,7 +1000,14 @@ class _DiscoverTopicsState extends State<DiscoverTopics> {
                   ),
                 ),
               ),
-            if (_isLoading) shimmer,
+            if (_isLoading)
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Center(child: shimmer),
+                ],
+              ),
           ],
         ),
       ),

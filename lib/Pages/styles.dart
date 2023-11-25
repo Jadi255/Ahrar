@@ -174,6 +174,19 @@ Widget shimmer = Shimmer.fromColors(
   ),
 );
 
+Widget coloredLogo = RichText(
+  text: TextSpan(
+    style: defaultText,
+    children: <InlineSpan>[
+      TextSpan(text: 'أ', style: TextStyle(color: blackColor, fontSize: 24)),
+      TextSpan(text: 'ح', style: TextStyle(color: redColor, fontSize: 24)),
+      TextSpan(text: 'ر', style: TextStyle(color: greenColor, fontSize: 24)),
+      TextSpan(text: 'ا', style: TextStyle(color: blackColor, fontSize: 24)),
+      TextSpan(text: 'ر', style: TextStyle(color: redColor, fontSize: 24)),
+    ],
+  ),
+);
+
 Widget themedCard(child) {
   return Card(
     child: child,

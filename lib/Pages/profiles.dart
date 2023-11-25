@@ -371,7 +371,7 @@ class _ViewProfileState extends State<ViewProfile> {
                 );
               }
             }
-            return shimmer;
+            return Center(child: shimmer);
           }),
     );
   }
@@ -778,6 +778,52 @@ class ViewProfileExtern extends StatefulWidget {
 }
 
 class _ViewProfileExternState extends State<ViewProfileExtern> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration(milliseconds: 500), () {
+      showWelcome();
+    });
+  }
+
+  void showWelcome() {
+    showDialog(
+        barrierDismissible: true,
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.black,
+            iconColor: Colors.black,
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'أهلا بك في تطبيق أحرار',
+                  textScaler: TextScaler.linear(0.75),
+                ),
+              ],
+            ),
+            content: Padding(
+              padding: EdgeInsets.all(20),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    SelectableLinkify(
+                        textDirection: TextDirection.rtl,
+                        onOpen: (link) async {
+                          await launchUrl(Uri.parse(link.url));
+                        },
+                        text:
+                            'منصة أحرار منصة تواصل اجتماعي من انتاج عربي تهدف لتحرير السوشيال ميديا العربية من هيمنة المنصات الأجنبية وللحد من استعمارهم الثقافي\n\nhttps://ahrar.up.railway.app/\n\n')
+                  ],
+                ),
+              ),
+            ),
+          );
+        });
+  }
+
   Future<Widget> getUser() async {
     String id = widget.target;
 

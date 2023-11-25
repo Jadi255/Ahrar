@@ -1,32 +1,21 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
-import 'package:tahrir/Pages/circle.dart';
-import 'package:tahrir/Pages/profiles.dart';
+import 'Pages/friends.dart' hide ShowComments;
+import 'Pages/circle.dart';
+import 'Pages/profiles.dart';
+import 'Pages/settings.dart';
+import 'Pages/topics.dart';
 import 'Pages/styles.dart';
 import 'Pages/auth.dart';
 import 'home.dart';
 import 'Pages/signup.dart' hide id;
-import 'user_data.dart';
-
-String initialRoute = "/home";
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final prefs = await SharedPreferences.getInstance();
-  var email = prefs.getString('email');
-  var password = prefs.getString('password');
-  var req = await authenticate(email, password);
-  if (req != 1) {
-    initialRoute = '/login';
-  }
   runApp(
-    const Directionality(
-      textDirection: TextDirection.rtl,
-      child: MyApp(),
-    ),
+    MyApp(),
   );
 }
 
@@ -47,10 +36,31 @@ final _router = GoRouter(
       ),
     ),
     GoRoute(
+      path: '/',
+      pageBuilder: (context, state) => MaterialPage<void>(
+        key: state.pageKey,
+        child: const FriendsCircle(),
+      ),
+    ),
+    GoRoute(
+      path: '/signUp',
+      pageBuilder: (context, state) => MaterialPage<void>(
+        key: state.pageKey,
+        child: const SignUp(),
+      ),
+    ),
+    GoRoute(
       path: '/signup',
       pageBuilder: (context, state) => MaterialPage<void>(
         key: state.pageKey,
         child: const SignUp(),
+      ),
+    ),
+    GoRoute(
+      path: '/friendRequests',
+      pageBuilder: (context, state) => MaterialPage<void>(
+        key: state.pageKey,
+        child: const FriendRequests(),
       ),
     ),
     GoRoute(
@@ -60,6 +70,16 @@ final _router = GoRouter(
         return MaterialPage<void>(
           key: state.pageKey,
           child: ShowComments(post: id!),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/discoverTopics/:id',
+      pageBuilder: (context, state) {
+        final id = state.pathParameters['id'];
+        return MaterialPage<void>(
+          key: state.pageKey,
+          child: DiscoverTopics(topic: id!),
         );
       },
     ),
@@ -136,38 +156,5 @@ class Login extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class NoConnection extends StatelessWidget {
-  const NoConnection({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          title: Text('أحرار', style: defaultText),
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.wifi_off),
-              Divider(
-                color: Colors.transparent,
-              ),
-              Text('أنت غير متصل بالإنترنت'),
-              Divider(
-                color: Colors.transparent,
-              ),
-              Text('سنحاول إعادة الإتصال'),
-              Divider(
-                color: Colors.transparent,
-              ),
-              CupertinoActivityIndicator()
-            ],
-          ),
-        ));
   }
 }

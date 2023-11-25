@@ -23,21 +23,21 @@ import 'package:url_launcher/url_launcher.dart';
 import '../user_data.dart';
 import "styles.dart";
 
-class Circle extends StatefulWidget {
-  const Circle({super.key});
+class FriendsCircle extends StatefulWidget {
+  const FriendsCircle({super.key});
 
   @override
-  State<Circle> createState() => _CircleState();
+  State<FriendsCircle> createState() => _FriendsCircleState();
 }
 
-class _CircleState extends State<Circle> {
+class _FriendsCircleState extends State<FriendsCircle> {
   int _page = 1;
   List<Widget> _postsWidgets = [];
   bool _isLoading = false;
   late String newestID;
   Map postItem = {};
   List commentsItem = [];
-  bool isPublic = true;
+  bool isPublic = false;
   List<String> topics = [];
   List<String> topicIDs = [];
   String? filter = "newest";
@@ -74,6 +74,7 @@ class _CircleState extends State<Circle> {
       setState(() {
         _isLoading = true;
       });
+      fetchPosts();
       List<Widget> newPosts = await renderPosts(limit: 7, page: _page);
 
       setState(() {
@@ -109,7 +110,7 @@ class _CircleState extends State<Circle> {
           filter: filter ?? '',
           timeRange: timeRange ?? '');
     } else {
-      data = await getCirclePosts(limit: limit, page: page, isPublic: true);
+      data = await getCirclePosts(limit: limit, page: page, isPublic: false);
     }
     if (_postsWidgets.isEmpty) {
       newestID = data['items'][0]['id'];
@@ -735,7 +736,7 @@ class _CircleState extends State<Circle> {
       String? filter,
       String? timeRange,
       String? selectedTopicId}) async {
-    String pbFilter = 'is_public = true';
+    String pbFilter = 'is_public = false';
     String pbSort = '-created';
     if (filter != null && filter == 'top') {
       pbSort = '-likes:length';
@@ -780,6 +781,7 @@ class _CircleState extends State<Circle> {
           filter: pbFilter,
           sort: pbSort,
         );
+    print(pbFilter);
     return resultList.toJson();
   }
 
@@ -872,7 +874,6 @@ class _CircleState extends State<Circle> {
                                   ),
                                 );
                               });
-
                           if (filter == 'newest') {
                             var newPosts = await renderPosts(
                                 limit: 7,
@@ -1134,7 +1135,7 @@ class CreatePost extends StatefulWidget {
 class _CreatePostState extends State<CreatePost> {
   TextEditingController controller = TextEditingController();
   FilePickerResult? images;
-  bool isPublic = true;
+  bool isPublic = false;
   late List<String> topics;
   late List<String> topicIDs;
   String? selectedTopic;
@@ -1430,6 +1431,7 @@ class ShowComments extends StatefulWidget {
 class _ShowCommentsState extends State<ShowComments> {
   List<Widget> comments = [];
   TextEditingController controller = TextEditingController();
+  bool _isLoading = true; // Add this line
   bool editMode = false;
   late String editID;
   late List records;
@@ -2099,722 +2101,6 @@ class _ShowCommentsState extends State<ShowComments> {
                             ),
                           )),
                       Padding(padding: EdgeInsets.all(100))
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class ShowCommentsExtern extends StatefulWidget {
-  final String post;
-
-  ShowCommentsExtern({
-    super.key,
-    required this.post,
-  });
-
-  @override
-  State<ShowCommentsExtern> createState() => _ShowCommentsExternState();
-}
-
-class _ShowCommentsExternState extends State<ShowCommentsExtern> {
-  @override
-  List<Widget> comments = [];
-  TextEditingController controller = TextEditingController();
-  bool _isLoading = true; // Add this line
-  bool editMode = false;
-  late String editID;
-  late List records;
-  String topic = '';
-  TextDirection textDirection = TextDirection.ltr;
-  bool isPosting = false; // Add this line
-  var postRecord;
-  var post;
-
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(Duration(milliseconds: 500), () {
-      showWelcome();
-    });
-  }
-
-  void showWelcome() {
-    showDialog(
-        barrierDismissible: true,
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.black,
-            iconColor: Colors.black,
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'أهلا بك في تطبيق أحرار',
-                  textScaler: TextScaler.linear(0.75),
-                ),
-              ],
-            ),
-            content: Padding(
-              padding: EdgeInsets.all(20),
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    SelectableLinkify(
-                        textDirection: TextDirection.rtl,
-                        onOpen: (link) async {
-                          await launchUrl(Uri.parse(link.url));
-                        },
-                        text:
-                            'منصة أحرار منصة تواصل اجتماعي من انتاج عربي تهدف لتحرير السوشيال ميديا العربية من هيمنة المنصات الأجنبية وللحد من استعمارهم الثقافي\n\nhttps://ahrar.up.railway.app/\n\n')
-                  ],
-                ),
-              ),
-            ),
-          );
-        });
-  }
-
-  Future<void> NotificationHandling() async {
-    String id = widget.post;
-    print(id);
-    var commentsRecord = await pb
-        .collection('circle_comments')
-        .getFullList(filter: 'post.id = "$id"', sort: '+created');
-
-    late String topicID;
-    if (postRecord.toJson()['topic'].isNotEmpty) {
-      topicID = postRecord.toJson()['topic'][0];
-    } else {
-      topicID = '';
-    }
-    records = commentsRecord;
-    if (topicID != '') {
-      var request = await pb.collection('topics').getOne(topicID);
-      topic = request.toJson()['topic'];
-    }
-  }
-
-  Future fetchComments() async {
-    comments.clear();
-    await NotificationHandling();
-    for (var i = 0; i < records.length; i++) {
-      comments.add(await createCommentCard(records[i], i));
-    }
-
-    return comments;
-  }
-
-  Future<Widget> createCommentCard(var record, int index) async {
-    post = record.toJson();
-    print(record);
-    var posterRecord = await pb.collection('users').getOne(post['by']);
-    Map userData = posterRecord.toJson();
-    String name = '${userData['fname']} ${userData['lname']}';
-    var avatarUrl = pb.getFileUrl(posterRecord, userData['avatar']).toString();
-    var postTime = timeAgo(DateTime.parse(post['created']).toLocal());
-    Widget header = GestureDetector(
-      onTap: () {
-        if (post['by'] != userID) {
-          context.go('/viewProfile/${post['by']}');
-        }
-      },
-      child: Row(
-        children: [
-          Flexible(
-            child: ListTile(
-              leading: ClipOval(
-                  child: CircleAvatar(
-                      backgroundColor: Colors.white,
-                      radius: 15,
-                      child: Image.network(avatarUrl))),
-              title: Text(name, style: defaultText),
-              subtitle: Text(
-                postTime,
-                textScaler: const TextScaler.linear(0.65),
-              ),
-            ),
-          ),
-          if (post['by'] == userID)
-            PopupMenuButton<String>(
-              color: Colors.white,
-              surfaceTintColor: Colors.white,
-              onSelected: (String result) async {
-                if (result == 'Edit') {
-                  controller.text = post['comment'];
-                  editMode = true;
-                  editID = post['id'];
-                } else if (result == "Delete") {
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        actionsAlignment: MainAxisAlignment.spaceBetween,
-                        backgroundColor: Colors.white,
-                        surfaceTintColor: Colors.white,
-                        content: Text('هل أنت متأكد؟',
-                            style: defaultText, textAlign: TextAlign.center),
-                        actions: [
-                          IconButton(
-                            onPressed: () async {
-                              setState(() {
-                                comments.removeAt(index);
-                              });
-                              await pb
-                                  .collection('circle_comments')
-                                  .delete(post['id']);
-                              await fetchComments();
-                              Navigator.of(context).pop();
-                            },
-                            icon: Icon(Icons.check, color: greenColor),
-                          ),
-                          IconButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                            icon: Icon(Icons.close, color: redColor),
-                          )
-                        ],
-                      );
-                    },
-                  );
-                }
-              },
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                const PopupMenuItem<String>(
-                  value: 'Edit',
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'تعديل',
-                        textAlign: TextAlign.center,
-                      ),
-                      Icon(Icons.edit),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'Delete',
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'حذف',
-                        textAlign: TextAlign.center,
-                      ),
-                      Icon(Icons.delete_forever),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          if (post['by'] != userID)
-            PopupMenuButton<String>(
-              color: Colors.white,
-              surfaceTintColor: Colors.white,
-              onSelected: (String result) async {
-                showDialog(
-                    context: context,
-                    builder: (context) {
-                      return ReportAbuse(post: post, mode: false);
-                    });
-              },
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                const PopupMenuItem<String>(
-                  value: 'Report',
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'تبليغ',
-                        textAlign: TextAlign.center,
-                      ),
-                      Icon(Icons.report),
-                    ],
-                  ),
-                ),
-              ],
-            )
-        ],
-      ),
-    );
-
-    return Card(
-      color: Colors.grey.shade100,
-      surfaceTintColor: Colors.white,
-      elevation: 1,
-      child: Column(
-        crossAxisAlignment: isArabic(post['post'])
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
-        children: [
-          header,
-          Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(10.0),
-                child: SelectableText(
-                  post['comment'],
-                  textAlign:
-                      isArabic(post['post']) ? TextAlign.right : TextAlign.left,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> postComment() async {
-    setState(() {
-      isPosting = true; // Set isPosting to true at the start
-    });
-
-    if (editMode) {
-      final body = <String, dynamic>{"comment": controller.text};
-
-      try {
-        final record =
-            await pb.collection('circle_comments').update(editID, body: body);
-        controller.text = "";
-        editID = "";
-        editMode = false;
-        setState(() {});
-
-        return;
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("حدث خطاً ما، الرجاء المحاولة لاحقاً"),
-        ));
-      }
-    }
-
-    if (controller.text.trim().isEmpty) {
-      return;
-    }
-
-    final body = <String, dynamic>{
-      "post": widget.post,
-      "by": userID,
-      "comment": controller.text,
-    };
-
-    try {
-      final record = await pb.collection('circle_comments').create(body: body);
-      var newComment = await createCommentCard(record, comments.length - 1);
-      setState(() {
-        isPosting = false; // Set isPosting back to false when done
-
-        controller.text = "";
-        comments.add(newComment);
-      });
-    } catch (e) {}
-  }
-
-  String timeAgo(DateTime date) {
-    Duration diff = DateTime.now().difference(date);
-    if (diff.inMinutes < 60) {
-      return 'منذ ${diff.inMinutes} د';
-    } else if (diff.inHours < 24) {
-      return 'منذ ${diff.inHours} س';
-    } else {
-      return DateFormat('dd/MM/yyyy').format(date.toLocal());
-    }
-  }
-
-  Future getPost() async {
-    postRecord = await pb.collection('circle_posts').getOne(widget.post);
-    var post = postRecord.toJson();
-    var posterRecord = await pb.collection('users').getOne(post['by']);
-    Map userData = posterRecord.toJson();
-    var avatarUrl = pb.getFileUrl(posterRecord, userData['avatar']).toString();
-    var postTime = timeAgo(DateTime.parse(post['created']).toLocal());
-    String by = '${userData['fname']} ${userData['lname']}';
-    var posterAvatar;
-    try {
-      posterAvatar = Image.network('$avatarUrl?token=${pb.authStore.token}');
-    } catch (e) {
-      posterAvatar = Image.network(
-          'https://png.pngtree.com/png-clipart/20210915/ourmid/pngtree-user-avatar-placeholder-png-image_3918418.jpg');
-    }
-    var comments = await fetchComments();
-
-    return Column(
-      children: [
-        createPostWidget(post, by, posterAvatar, postTime),
-        Padding(
-            padding: const EdgeInsets.only(bottom: 25, left: 10, right: 10),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 5.0),
-              child: Column(
-                children: comments,
-              ),
-            )),
-        Padding(padding: EdgeInsets.all(50))
-      ],
-    );
-  }
-
-  Widget createPostWidget(
-      var post, String by, var posterAvatar, String postTime) {
-    int ratio = post['likes'].length - post['dislikes'].length;
-    List<String> imageUrls = [];
-
-    if (post['pictures'].isNotEmpty) {
-      var pictures = post['pictures'];
-      RecordModel record = RecordModel.fromJson(post);
-      for (var picture in pictures) {
-        var url =
-            '${pb.getFileUrl(record, picture)}?token=${pb.authStore.token}';
-        imageUrls.add(url);
-      }
-    }
-    return themedCard(
-      Column(
-        crossAxisAlignment: isArabic(post['post'])
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: () {
-              if (post['by'] != userID) {
-                context.go('/viewProfile/${post['by']}');
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ViewProfile(target: post['by']),
-                  ),
-                );
-              }
-            },
-            child: Row(
-              children: [
-                Flexible(
-                  child: ListTile(
-                    leading: ClipOval(
-                        child: CircleAvatar(
-                            backgroundColor: Colors.white,
-                            child: posterAvatar,
-                            radius: 25)),
-                    title: Text(by, style: defaultText),
-                    subtitle: Text(postTime,
-                        textScaler: const TextScaler.linear(0.65)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (topic != '')
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10),
-              child: Text(
-                "#$topic",
-                style: topicText,
-                textDirection: isArabic(post['post'])
-                    ? TextDirection.rtl
-                    : TextDirection.ltr,
-              ),
-            ),
-          if (imageUrls.length == 1)
-            GestureDetector(
-              onTap: () {
-                showDialog(
-                    context: context,
-                    builder: (context) {
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).pop();
-                        },
-                        child: InteractiveViewer(
-                          child: GestureDetector(
-                            onLongPress: () async {
-                              await launchUrl(Uri.parse(imageUrls[0]));
-                            },
-                            child: Image.network(imageUrls[0]),
-                          ),
-                        ),
-                      );
-                    });
-                setState(() {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text('إضغط ضغطة طويلة على الصورة لحفظها')));
-                });
-              },
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(0),
-                child: Center(
-                  child: Image.network(
-                    height: 350,
-                    width: double.infinity,
-                    imageUrls[0],
-                    fit: BoxFit.fitWidth,
-                  ),
-                ),
-              ),
-            ),
-          if (imageUrls.length > 1)
-            CarouselSlider(
-              options: CarouselOptions(
-                height: 400.0,
-                pageSnapping: true,
-              ),
-              items: imageUrls.map((imageUrl) {
-                return FutureBuilder(
-                  future: Future.delayed(Duration(milliseconds: 500), () async {
-                    return GestureDetector(
-                      onLongPress: () async {
-                        await launchUrl(Uri.parse(imageUrl));
-                      },
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).pop();
-                              },
-                              child: InteractiveViewer(
-                                child: Image.network(imageUrl),
-                              ),
-                            );
-                          },
-                        );
-                        setState(() {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content:
-                                  Text('إضغط ضغطة طويلة على الصورة لحفظها')));
-                        });
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 5.0),
-                        decoration:
-                            const BoxDecoration(color: Colors.transparent),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(0),
-                          child: Center(
-                            child: Image.network(
-                              height: 350,
-                              width: double.infinity,
-                              imageUrl,
-                              fit: BoxFit.fitWidth,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(
-                          child:
-                              CupertinoActivityIndicator()); // or your custom loader
-                    } else if (snapshot.hasError) {
-                      return Text(
-                          'حدث خطأ نتيجة ضغط المستخدمين، الرجاء إعادة المحاولة');
-                    } else {
-                      return snapshot.data!;
-                    }
-                  },
-                );
-              }).toList(),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: SelectableLinkify(
-              onOpen: (link) async {
-                await launchUrl(Uri.parse(link.url));
-              },
-              text: post['post'],
-              textDirection: isArabic(post['post'])
-                  ? TextDirection.rtl
-                  : TextDirection.ltr,
-            ),
-          ),
-          createPostActions(post, ratio),
-        ],
-      ),
-    );
-  }
-
-  Widget createPostActions(var post, int ratio) {
-    return StatefulBuilder(builder: (context, setState) {
-      return Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            if (post['is_public']) createShareButton(post),
-            createLikeDislikeButtons(post, setState),
-          ],
-        ),
-      );
-    });
-  }
-
-  Widget createShareButton(var post) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 5.0),
-      child: IconButton(
-        style: BlackTextButton,
-        onPressed: () async {
-          final url =
-              'https://ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
-          await Clipboard.setData(ClipboardData(text: url));
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('تم نسخ رابط المنشور للمشاركة')),
-          );
-        },
-        icon: const Icon(Icons.share),
-      ),
-    );
-  }
-
-  Widget createLikeDislikeButtons(
-      var post, void Function(void Function()) setState) {
-    ValueNotifier<int> ratio =
-        ValueNotifier<int>(post['likes'].length - post['dislikes'].length);
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        createLikeButton(context, post, ratio),
-        ValueListenableBuilder<int>(
-          valueListenable: ratio,
-          builder: (context, value, child) {
-            return Text('$value');
-          },
-        ),
-        createDislikeButton(context, post, ratio),
-      ],
-    );
-  }
-
-  Widget createLikeButton(
-      BuildContext context, var post, ValueNotifier<int> ratio) {
-    return IconButton(
-      onPressed: () async {
-        bool isLiked = post['likes'].contains(pb.authStore.model.id);
-        bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
-        if (!isLiked) {
-          post['likes'].add(pb.authStore.model.id);
-          if (isDisliked) {
-            post['dislikes'].remove(pb.authStore.model.id);
-          }
-        } else {
-          post['likes'].remove(pb.authStore.model.id);
-        }
-        await updatePostLikesAndDislikes(post);
-        ratio.value = post['likes'].length - post['dislikes'].length;
-        setState(() {});
-      },
-      icon: Icon(Icons.thumb_up,
-          color: post['likes'].contains(pb.authStore.model.id)
-              ? greenColor
-              : Colors.black),
-    );
-  }
-
-  Widget createDislikeButton(
-      BuildContext context, var post, ValueNotifier<int> ratio) {
-    bool isLiked = post['likes'].contains(pb.authStore.model.id);
-    bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
-    return IconButton(
-      onPressed: () async {
-        if (!isDisliked) {
-          post['dislikes'].add(pb.authStore.model.id);
-          if (isLiked) {
-            post['likes'].remove(pb.authStore.model.id);
-          }
-        } else {
-          post['dislikes'].remove(pb.authStore.model.id);
-        }
-        await updatePostLikesAndDislikes(post);
-        ratio.value = post['likes'].length - post['dislikes'].length;
-      },
-      icon: Icon(Icons.thumb_down, color: isDisliked ? redColor : Colors.black),
-    );
-  }
-
-  Future<void> updatePostLikesAndDislikes(var post) async {
-    final body = <String, dynamic>{
-      "likes": post['likes'],
-      "dislikes": post['dislikes']
-    };
-    await pb.collection('circle_posts').update(post['id'], body: body);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(automaticallyImplyLeading: true),
-      bottomSheet: Container(
-        width: double.infinity,
-        color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: TextButton(
-            onPressed: () {
-              context.go('/');
-            },
-            style: TextButtonStyle,
-            child: Text(
-              'إنضم لمنصة أحرار',
-              textScaler: TextScaler.linear(1.15),
-              style: defaultText,
-            ),
-          ),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.only(bottom: 5),
-        child: SingleChildScrollView(
-          child: SafeArea(
-            bottom: true,
-            child: Column(
-              children: [
-                SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      FutureBuilder(
-                          future: getPost(),
-                          builder: (ctx, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.done) {
-                              if (snapshot.hasError) {
-                                return const Center(
-                                  child: Text(
-                                    'An error occurred',
-                                  ),
-                                );
-                                // if we got our data
-                              } else if (snapshot.hasData) {
-                                // Extracting data from snapshot object
-                                final data = snapshot.data;
-                                return Padding(
-                                    padding: const EdgeInsets.all(5),
-                                    child: data);
-                              }
-                            }
-                            return Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.all(50.0),
-                                  child: Center(child: shimmer),
-                                ),
-                              ],
-                            );
-                          }),
                     ],
                   ),
                 ),
