@@ -355,7 +355,7 @@ class _FriendsListState extends State<FriendsList> {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) {
-                    return ViewProfile(target: friend['by']);
+                    return ViewProfile(target: item);
                   },
                 ),
               );
@@ -389,6 +389,7 @@ class _FriendsListState extends State<FriendsList> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: shimmer); // or your custom loader
             } else if (snapshot.hasError) {
+              throw (snapshot.error!);
               return Text('Error: ${snapshot.error}');
             } else {
               return Column(children: snapshot.data!);

@@ -124,7 +124,6 @@ class _SignUpState extends State<SignUp> {
     if (_selectedValue != 1) {
       sex = "male";
     }
-    String fullName = '$fname $lname';
 
     final body = <String, dynamic>{
       "email": emailController.text,
@@ -134,7 +133,6 @@ class _SignUpState extends State<SignUp> {
       "fname": fnameController.text,
       "lname": lnameController.text,
       "sex": sex,
-      "full_name": fullName,
       "birthday": birthdayController.text,
     };
 

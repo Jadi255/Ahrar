@@ -35,7 +35,9 @@ class _HomeState extends State<Home> {
     const Profile(),
   ];
 
-  String buildNo = "261124";
+  String buildNo = "261123/2";
+  String releaseNote =
+      'Stability fixes\n Fixed bug in login page\n Fixed bug in friends rendering';
 
   @override
   void initState() {
@@ -192,10 +194,16 @@ class _HomeState extends State<Home> {
               padding: EdgeInsets.all(20),
               child: SingleChildScrollView(
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                         textDirection: TextDirection.rtl,
-                        'إصدار رقم $buildNo\nتصميم جهاد ناصرالدين (C) ${DateTime.now().year}')
+                        'إصدار رقم $buildNo\n\n'),
+                    Text('$releaseNote\n\n\n\n'),
+                    Divider(),
+                    Text(
+                        textDirection: TextDirection.rtl,
+                        'تصميم جهاد ناصرالدين (C) ${DateTime.now().year}')
                   ],
                 ),
               ),
