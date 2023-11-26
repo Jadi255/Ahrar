@@ -1430,6 +1430,7 @@ class ShowComments extends StatefulWidget {
 class _ShowCommentsState extends State<ShowComments> {
   List<Widget> comments = [];
   TextEditingController controller = TextEditingController();
+  bool _isLoading = true; // Add this line
   bool editMode = false;
   late String editID;
   late List records;
@@ -1482,13 +1483,10 @@ class _ShowCommentsState extends State<ShowComments> {
     var postTime = timeAgo(DateTime.parse(post['created']).toLocal());
     Widget header = GestureDetector(
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) {
-              return ViewProfile(target: post['by']);
-            },
-          ),
-        );
+        if (post['by'] != userID) {
+          Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => ViewProfile(target: post['by'])));
+        }
       },
       child: Row(
         children: [
@@ -1625,11 +1623,8 @@ class _ShowCommentsState extends State<ShowComments> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(10.0),
-                child: SelectableLinkify(
-                  onOpen: (link) async {
-                    await launchUrl(Uri.parse(link.url));
-                  },
-                  text: post['comment'],
+                child: SelectableText(
+                  post['comment'],
                   textAlign:
                       isArabic(post['post']) ? TextAlign.right : TextAlign.left,
                 ),
@@ -1713,7 +1708,21 @@ class _ShowCommentsState extends State<ShowComments> {
       posterAvatar = Image.network(
           'https://png.pngtree.com/png-clipart/20210915/ourmid/pngtree-user-avatar-placeholder-png-image_3918418.jpg');
     }
-    return createPostWidget(post, by, posterAvatar, postTime);
+    var comments = await fetchComments();
+    return Column(
+      children: [
+        createPostWidget(post, by, posterAvatar, postTime),
+        Padding(
+            padding: const EdgeInsets.only(bottom: 25, left: 10, right: 10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 5.0),
+              child: Column(
+                children: comments,
+              ),
+            )),
+        Padding(padding: EdgeInsets.all(50))
+      ],
+    );
   }
 
   Widget createPostWidget(
@@ -1740,9 +1749,9 @@ class _ShowCommentsState extends State<ShowComments> {
             onTap: () {
               if (post['by'] != userID) {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) {
-                    return ViewProfile(target: post['by']);
-                  }),
+                  MaterialPageRoute(
+                    builder: (context) => ViewProfile(target: post['by']),
+                  ),
                 );
               }
             },
@@ -1917,8 +1926,7 @@ class _ShowCommentsState extends State<ShowComments> {
       child: IconButton(
         style: BlackTextButton,
         onPressed: () async {
-          final url =
-              'https://ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
+          final url = 'ahrar.up.railway.app/#/showCommentsExtern/${post['id']}';
           await Clipboard.setData(ClipboardData(text: url));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('تم نسخ رابط المنشور للمشاركة')),
@@ -1950,11 +1958,11 @@ class _ShowCommentsState extends State<ShowComments> {
   }
 
   Widget createLikeButton(
-      BuildContext context, var post, ValueNotifier<int> ratio) {
+      BuildContext context, var post, ValueNotifier<int> likes) {
+    bool isLiked = post['likes'].contains(pb.authStore.model.id);
+    bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
     return IconButton(
       onPressed: () async {
-        bool isLiked = post['likes'].contains(pb.authStore.model.id);
-        bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
         if (!isLiked) {
           post['likes'].add(pb.authStore.model.id);
           if (isDisliked) {
@@ -1964,18 +1972,15 @@ class _ShowCommentsState extends State<ShowComments> {
           post['likes'].remove(pb.authStore.model.id);
         }
         await updatePostLikesAndDislikes(post);
-        ratio.value = post['likes'].length - post['dislikes'].length;
+        likes.value = post['likes'].length;
         setState(() {});
       },
-      icon: Icon(Icons.thumb_up,
-          color: post['likes'].contains(pb.authStore.model.id)
-              ? greenColor
-              : Colors.black),
+      icon: Icon(Icons.thumb_up, color: isLiked ? greenColor : Colors.black),
     );
   }
 
   Widget createDislikeButton(
-      BuildContext context, var post, ValueNotifier<int> ratio) {
+      BuildContext context, var post, ValueNotifier<int> dislikes) {
     bool isLiked = post['likes'].contains(pb.authStore.model.id);
     bool isDisliked = post['dislikes'].contains(pb.authStore.model.id);
     return IconButton(
@@ -1989,7 +1994,8 @@ class _ShowCommentsState extends State<ShowComments> {
           post['dislikes'].remove(pb.authStore.model.id);
         }
         await updatePostLikesAndDislikes(post);
-        ratio.value = post['likes'].length - post['dislikes'].length;
+        dislikes.value = post['dislikes'].length;
+        setState(() {});
       },
       icon: Icon(Icons.thumb_down, color: isDisliked ? redColor : Colors.black),
     );
@@ -2006,48 +2012,42 @@ class _ShowCommentsState extends State<ShowComments> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: coloredLogo,
-        automaticallyImplyLeading: true,
+      appBar: AppBar(automaticallyImplyLeading: true),
+      bottomSheet: Container(
+        padding: const EdgeInsets.all(10),
+        color: Colors.white,
+        child: Row(
+          children: [
+            Flexible(
+              child: StatefulBuilder(builder: (context, setState) {
+                return TextField(
+                  onChanged: (value) {
+                    setState(() {
+                      textDirection = RegExp(r'[\u0600-\u06FF]').hasMatch(value)
+                          ? TextDirection.rtl
+                          : TextDirection.ltr;
+                    });
+                  },
+
+                  keyboardType: TextInputType.multiline, // Add this line
+                  maxLines: null, // Add this line
+
+                  controller: controller,
+                  decoration:
+                      const InputDecoration(hintText: "إضافة تعليق جديد"),
+                );
+              }),
+            ),
+            isPosting // Check if isPosting is true
+                ? CupertinoActivityIndicator() // Show activity indicator
+                : IconButton(
+                    // Else, show the button
+                    onPressed: postComment,
+                    icon: const Icon(Icons.send),
+                  ),
+          ],
+        ),
       ),
-      bottomSheet: StatefulBuilder(builder: (context, setState) {
-        return Container(
-          padding: const EdgeInsets.all(10),
-          color: Colors.white,
-          child: Row(
-            children: [
-              Flexible(
-                child: StatefulBuilder(builder: (context, setState) {
-                  return TextField(
-                    onChanged: (value) {
-                      setState(() {
-                        textDirection =
-                            RegExp(r'[\u0600-\u06FF]').hasMatch(value)
-                                ? TextDirection.rtl
-                                : TextDirection.ltr;
-                      });
-                    },
-
-                    keyboardType: TextInputType.multiline, // Add this line
-                    maxLines: null, // Add this line
-
-                    controller: controller,
-                    decoration:
-                        const InputDecoration(hintText: "إضافة تعليق جديد"),
-                  );
-                }),
-              ),
-              isPosting // Check if isPosting is true
-                  ? CupertinoActivityIndicator() // Show activity indicator
-                  : IconButton(
-                      // Else, show the button
-                      onPressed: postComment,
-                      icon: const Icon(Icons.send),
-                    ),
-            ],
-          ),
-        );
-      }),
       body: Padding(
         padding: const EdgeInsets.only(bottom: 5),
         child: SingleChildScrollView(
@@ -2064,6 +2064,7 @@ class _ShowCommentsState extends State<ShowComments> {
                             if (snapshot.connectionState ==
                                 ConnectionState.done) {
                               if (snapshot.hasError) {
+                                throw (snapshot.error!);
                                 return const Center(
                                   child: Text(
                                     'An error occurred',
@@ -2088,17 +2089,6 @@ class _ShowCommentsState extends State<ShowComments> {
                               ],
                             );
                           }),
-                      Padding(
-                          padding: const EdgeInsets.only(
-                              bottom: 25, left: 10, right: 10),
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 5.0),
-                            child: Column(
-                              children: comments,
-                            ),
-                          )),
-                      Padding(padding: EdgeInsets.all(100))
                     ],
                   ),
                 ),

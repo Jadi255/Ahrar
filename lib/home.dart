@@ -35,7 +35,7 @@ class _HomeState extends State<Home> {
     const Profile(),
   ];
 
-  String buildNo = "251123/5";
+  String buildNo = "261124";
 
   @override
   void initState() {
@@ -53,17 +53,10 @@ class _HomeState extends State<Home> {
   }
 
   Future checkAuth() async {
-    if (userID == null) {
-      final prefs = await SharedPreferences.getInstance();
-
-      String? email = await prefs.getString('email');
-      String? password = await prefs.getString('password');
-
-      var checkAuth = await authenticate(email, password);
-
-      if (checkAuth != 1) {
-        context.go('/login');
-      }
+    try {
+      String placeholder = userID.split('')[0];
+    } catch (e) {
+      context.go('/login');
     }
   }
 

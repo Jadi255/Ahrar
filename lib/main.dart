@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tahrir/user_data.dart';
 import 'Pages/friends.dart' hide ShowComments;
 import 'Pages/circle.dart';
 import 'Pages/profiles.dart';
@@ -13,7 +15,13 @@ import 'Pages/signup.dart' hide id;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
 
+  String? email = await prefs.getString('email');
+  String? password = await prefs.getString('password');
+
+  var checkAuth = await authenticate(email, password);
+  print(checkAuth);
   runApp(
     MyApp(),
   );
