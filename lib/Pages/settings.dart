@@ -335,27 +335,30 @@ class FriendsList extends StatefulWidget {
 
 class _FriendsListState extends State<FriendsList> {
   List friends = user['friends'];
-  List<Widget> page = [];
   late Image avatar;
 
-  Future getFriends() async {
-    List<Widget> page = [];
+  Stream<List<Widget>> getFriends() async* {
+    List<Widget> friendWidgets = [];
+
     for (var item in friends) {
       var target = await pb.collection('users').getOne(item);
       var friend = target.toJson();
       String name = '${friend['fname']} ${friend['lname']}';
       var avatarUrl = pb.getFileUrl(target, friend['avatar']).toString();
-
-      page.add(Card(
+      friendWidgets.add(Card(
         color: Colors.white,
         surfaceTintColor: Colors.white,
         child: Padding(
           padding: const EdgeInsets.all(10.0),
           child: ListTile(
             onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-                return ViewProfile(target: friend['by']);
-              }));
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) {
+                    return ViewProfile(target: friend['by']);
+                  },
+                ),
+              );
             },
             leading:
                 ClipOval(child: Image.network(avatarUrl, fit: BoxFit.cover)),
@@ -363,8 +366,8 @@ class _FriendsListState extends State<FriendsList> {
           ),
         ),
       ));
+      yield friendWidgets;
     }
-    return page;
   }
 
   @override
@@ -379,31 +382,19 @@ class _FriendsListState extends State<FriendsList> {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        child: FutureBuilder(
-            future: getFriends(),
-            builder: (ctx, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done) {
-                if (snapshot.hasError) {
-                  return const Center(
-                    child: Text(
-                      'An error occurred',
-                    ),
-                  );
-
-                  // if we got our data
-                } else if (snapshot.hasData) {
-                  // Extracting data from snapshot object
-                  final data = snapshot.data;
-                  return SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Column(children: data),
-                    ),
-                  );
-                }
-              }
-              return Center(child: shimmer);
-            }),
+        child: StreamBuilder<List<Widget>>(
+          stream: getFriends(),
+          builder:
+              (BuildContext context, AsyncSnapshot<List<Widget>> snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: shimmer); // or your custom loader
+            } else if (snapshot.hasError) {
+              return Text('Error: ${snapshot.error}');
+            } else {
+              return Column(children: snapshot.data!);
+            }
+          },
+        ),
       ),
     );
   }
