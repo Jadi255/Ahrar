@@ -7,32 +7,6 @@ Color greenColor = const Color.fromRGBO(20, 153, 84, 1);
 Color redColor = const Color.fromRGBO(228, 49, 43, 1);
 Color blackColor = const Color.fromRGBO(0, 0, 0, 1);
 
-final Widget Stripes = Column(
-  children: [
-    Padding(
-      padding: const EdgeInsets.only(bottom: 5.0),
-      child: Container(
-        height: 10.0,
-        color: greenColor,
-      ),
-    ),
-    Padding(
-      padding: const EdgeInsets.only(bottom: 5.0),
-      child: Container(
-        height: 10.0,
-        color: redColor,
-      ),
-    ),
-    Padding(
-      padding: const EdgeInsets.only(bottom: 5.0),
-      child: Container(
-        height: 10.0,
-        color: blackColor,
-      ),
-    ),
-  ],
-);
-
 final Widget TahrirSlogan = Padding(
   padding: const EdgeInsets.all(10.0),
   child: Column(
@@ -76,9 +50,8 @@ final ButtonStyle FilledButtonStyle = ButtonStyle(
 );
 
 TextStyle defaultText = GoogleFonts.notoSansArabic(
-    textStyle: const TextStyle(
-  fontWeight: FontWeight.w700,
-));
+    textStyle:
+        const TextStyle(fontWeight: FontWeight.w700, color: Colors.black));
 
 TextStyle topicText = GoogleFonts.notoSansArabic(
     textStyle: TextStyle(
@@ -96,7 +69,7 @@ Widget logo = Column(
     ),
     Text(
       textScaler: const TextScaler.linear(1.75),
-      "أحرار",
+      "قلم",
       style: GoogleFonts.notoSansArabic(
         textStyle: const TextStyle(
           fontWeight: FontWeight.w500,
@@ -107,6 +80,10 @@ Widget logo = Column(
 );
 
 ThemeData appTheme = ThemeData(
+  primaryColor: Colors.white,
+  bottomSheetTheme: BottomSheetThemeData(
+    backgroundColor: Colors.transparent,
+  ),
   scaffoldBackgroundColor: Colors.grey.shade200,
   cardTheme: const CardTheme(elevation: 1, color: Colors.white),
   appBarTheme: const AppBarTheme(
@@ -137,6 +114,10 @@ ThemeData appTheme = ThemeData(
     labelSmall: TextStyle(color: Colors.black),
   ),
   useMaterial3: true,
+  expansionTileTheme: ExpansionTileThemeData(
+    iconColor: greenColor,
+    collapsedIconColor: blackColor,
+  ),
   inputDecorationTheme: InputDecorationTheme(
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(5.0),
@@ -147,6 +128,9 @@ ThemeData appTheme = ThemeData(
     ),
   ),
   cardColor: Colors.white,
+  snackBarTheme: SnackBarThemeData(
+    showCloseIcon: true,
+  ),
   textSelectionTheme: const TextSelectionThemeData(cursorColor: Colors.black),
 );
 
@@ -161,7 +145,7 @@ Widget horizontalStripes = Row(
 );
 
 Widget shimmer = Shimmer.fromColors(
-  baseColor: Colors.grey[700]!,
+  baseColor: Colors.grey[500]!,
   highlightColor: Colors.grey[100]!,
   child: Column(
     mainAxisAlignment: MainAxisAlignment.center,
@@ -178,11 +162,9 @@ Widget coloredLogo = RichText(
   text: TextSpan(
     style: defaultText,
     children: <InlineSpan>[
-      TextSpan(text: 'أ', style: TextStyle(color: blackColor, fontSize: 24)),
-      TextSpan(text: 'ح', style: TextStyle(color: redColor, fontSize: 24)),
-      TextSpan(text: 'ر', style: TextStyle(color: greenColor, fontSize: 24)),
-      TextSpan(text: 'ا', style: TextStyle(color: blackColor, fontSize: 24)),
-      TextSpan(text: 'ر', style: TextStyle(color: redColor, fontSize: 24)),
+      TextSpan(text: 'ق', style: TextStyle(color: blackColor, fontSize: 24)),
+      TextSpan(text: 'ل', style: TextStyle(color: redColor, fontSize: 24)),
+      TextSpan(text: 'م', style: TextStyle(color: greenColor, fontSize: 24)),
     ],
   ),
 );
@@ -194,4 +176,76 @@ Widget themedCard(child) {
     color: Colors.white,
     surfaceTintColor: Colors.white,
   );
+}
+
+Widget pagePadding(child) {
+  return Padding(
+    padding: EdgeInsets.all(10),
+    child: child,
+  );
+}
+
+Widget circularImage(img) {
+  return Padding(
+    padding: const EdgeInsets.all(8.0),
+    child: CircleAvatar(
+      backgroundColor: Colors.grey.shade200,
+      radius: 100,
+      backgroundImage: img,
+    ),
+  );
+}
+
+void showImage(context, image) {
+  showDialog(
+    barrierDismissible: true,
+    context: context,
+    builder: (context) {
+      return InteractiveViewer(
+        child: Image(image: image),
+      );
+    },
+  );
+}
+
+Widget titleText(text) {
+  return Text(text, style: defaultText);
+}
+
+Widget floatingInput(child) {
+  return themedCard(
+    SingleChildScrollView(
+      child: SafeArea(
+        bottom: true,
+        child: Container(
+          color: Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            child: child,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+InputDecoration textfieldDecoration(String hintText) {
+  return InputDecoration(
+    label: Text(hintText),
+    labelStyle: TextStyle(
+      color: Colors.black, // Set your desired color
+    ),
+    contentPadding: EdgeInsets.symmetric(horizontal: 15),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(30),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(30), // Circular/Oval border
+    ),
+  );
+}
+
+bool isArabic(String text) {
+  final arabicRegex = RegExp(r'[\u0600-\u06FF]');
+  return arabicRegex.hasMatch(text);
 }
