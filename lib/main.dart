@@ -1,20 +1,32 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:pocketbase/pocketbase.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'firebase_options.dart';
 import 'package:qalam/Pages/fetchers.dart';
 import 'package:qalam/auth.dart';
 import 'package:qalam/home.dart';
+import 'package:qalam/Pages/cache.dart';
+
 import 'styles.dart';
 import 'user_data.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final FlutterSecureStorage storage = FlutterSecureStorage();
-  final pb = PocketBase('https://ahrar.pockethost.io');
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  await FirebaseMessaging.instance.requestPermission(provisional: true);
+  await FirebaseMessaging.instance.setAutoInitEnabled(true);
+  final pb = await PocketBase('https://ahrar.pockethost.io');
   final authService = AuthService(pb);
+  await Hive.initFlutter();
+  Hive.registerAdapter(MessageAdapter());
   Provider.debugCheckInvalidValueType = null;
   final user = User(
       id: '',
@@ -43,7 +55,6 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-    final user = Provider.of<User>(context);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'قلم',
@@ -65,8 +76,9 @@ class MyApp extends StatelessWidget {
                 builder: (context) => Home(authService: authService));
           case '/signUp':
             return MaterialPageRoute(
-                builder: (context) =>
-                    Placeholder()); // Replace with your SignUp widget
+                builder: (context) => SignUp(
+                      pb: authService.pb,
+                    )); // Replace with your SignUp widget
           case '/friendRequests':
             return MaterialPageRoute(
                 builder: (context) =>
@@ -124,6 +136,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+
     checkAuthentication();
   }
 

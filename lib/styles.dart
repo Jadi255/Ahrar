@@ -7,7 +7,7 @@ Color greenColor = const Color.fromRGBO(20, 153, 84, 1);
 Color redColor = const Color.fromRGBO(228, 49, 43, 1);
 Color blackColor = const Color.fromRGBO(0, 0, 0, 1);
 
-final Widget TahrirSlogan = Padding(
+final Widget qalamSlogan = Padding(
   padding: const EdgeInsets.all(10.0),
   child: Column(
     children: [
@@ -80,6 +80,10 @@ Widget logo = Column(
 );
 
 ThemeData appTheme = ThemeData(
+  textSelectionTheme: TextSelectionThemeData(
+    cursorColor: blackColor,
+    selectionColor: Colors.green[100],
+  ),
   primaryColor: Colors.white,
   bottomSheetTheme: BottomSheetThemeData(
     backgroundColor: Colors.transparent,
@@ -131,7 +135,6 @@ ThemeData appTheme = ThemeData(
   snackBarTheme: SnackBarThemeData(
     showCloseIcon: true,
   ),
-  textSelectionTheme: const TextSelectionThemeData(cursorColor: Colors.black),
 );
 
 Widget horizontalStripes = Row(
@@ -191,7 +194,8 @@ Widget circularImage(img) {
     child: CircleAvatar(
       backgroundColor: Colors.grey.shade200,
       radius: 100,
-      backgroundImage: img,
+      foregroundImage: img,
+      backgroundImage: Image.asset('assets/placeholder.jpg').image,
     ),
   );
 }
@@ -201,8 +205,13 @@ void showImage(context, image) {
     barrierDismissible: true,
     context: context,
     builder: (context) {
-      return InteractiveViewer(
-        child: Image(image: image),
+      return GestureDetector(
+        onTap: () {
+          Navigator.of(context).pop();
+        },
+        child: InteractiveViewer(
+          child: Image(image: image),
+        ),
       );
     },
   );
@@ -235,7 +244,7 @@ InputDecoration textfieldDecoration(String hintText) {
     labelStyle: TextStyle(
       color: Colors.black, // Set your desired color
     ),
-    contentPadding: EdgeInsets.symmetric(horizontal: 15),
+    contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 15),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(30),
     ),

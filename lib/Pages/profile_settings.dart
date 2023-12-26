@@ -4,10 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:qalam/Pages/chats.dart';
+import 'package:qalam/Pages/users_profiles.dart';
 import 'package:qalam/user_data.dart';
 import '../styles.dart';
 
@@ -543,13 +542,17 @@ class _AvatarSettingsState extends State<AvatarSettings> {
 
 class MyFriends extends StatefulWidget {
   final User user;
-  const MyFriends({super.key, required this.user});
+  final bool chatMode;
+  const MyFriends({super.key, required this.user, required this.chatMode});
 
   @override
   State<MyFriends> createState() => _MyFriendsState();
 }
 
-class _MyFriendsState extends State<MyFriends> {
+class _MyFriendsState extends State<MyFriends>
+    with AutomaticKeepAliveClientMixin {
+  bool get wantKeepAlive => true;
+
   Stream<List<Widget>> getFriends() async* {
     List friends = await widget.user.getFriends();
     if (friends.isEmpty) {
@@ -582,11 +585,61 @@ class _MyFriendsState extends State<MyFriends> {
             padding: const EdgeInsets.all(10.0),
             child: ListTile(
               onTap: () {
-                //return ViewProfile(target: item);
+                if (!widget.chatMode) {
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          UserProfile(
+                              id: friend['id'], fullName: friend['full_name']),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                        var begin = Offset(1.0, 0.0);
+                        var end = Offset.zero;
+                        var curve = Curves.ease;
+
+                        var tween = Tween(begin: begin, end: end)
+                            .chain(CurveTween(curve: curve));
+
+                        return SlideTransition(
+                          position: animation.drive(tween),
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
+                } else if (widget.chatMode) {
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          ConversationView(
+                        id: friend['id'],
+                        name: friend['full_name'],
+                        avatar: avatarUrl,
+                      ),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                        var begin = Offset(1.0, 0.0);
+                        var end = Offset.zero;
+                        var curve = Curves.ease;
+
+                        var tween = Tween(begin: begin, end: end)
+                            .chain(CurveTween(curve: curve));
+
+                        return SlideTransition(
+                          position: animation.drive(tween),
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
+                }
               },
               leading: CircleAvatar(
                 backgroundColor: Colors.grey.shade100,
-                backgroundImage: avatarImage,
+                foregroundImage: avatarImage,
+                backgroundImage: Image.asset('assets/placeholder.jpg').image,
               ),
               title: Text(name),
             ),
@@ -599,12 +652,13 @@ class _MyFriendsState extends State<MyFriends> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return SingleChildScrollView(
       child: StreamBuilder<List<Widget>>(
         stream: getFriends(),
         builder: (BuildContext context, AsyncSnapshot<List<Widget>> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return shimmer; // or your custom loader
+            return Center(child: shimmer); // or your custom loader
           } else if (snapshot.hasError) {
             return Text('Error: ${snapshot.error}');
           } else {

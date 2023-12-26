@@ -1,14 +1,12 @@
-import 'dart:convert';
 import 'dart:io';
-
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:crypton/crypton.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pocketbase/pocketbase.dart';
 import 'package:provider/provider.dart';
+import 'package:qalam/Pages/cache.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -31,6 +29,14 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     await storage.deleteAll();
+    var fcmToken;
+    fcmToken = await FirebaseMessaging.instance.getToken();
+    if (kIsWeb) {
+      fcmToken = await FirebaseMessaging.instance.getToken(
+          vapidKey:
+              "BBT1WN2eSXbRVYatPTKRbUGfoGE4RTpSoMwNqzkhaGMtQXjiKGyvTkRmmsLy54GWwlsVqun6H04eMrQArVSoSnI");
+    }
+
     try {
       final authData =
           await pb.collection('users').authWithPassword(email, password);
@@ -46,7 +52,13 @@ class AuthService {
       final avatarUrl =
           pb.getFileUrl(userRecordModel, authMap['avatar']).toString();
       final avatar = CachedNetworkImageProvider(avatarUrl);
-
+      if (authMap['fcm_token'] == "" || authMap['fcm_token'] != fcmToken) {
+        var request = await pb.collection('users').update(
+          authMap['id'],
+          body: {"fcm_token": fcmToken},
+        );
+        print(request);
+      }
       // Create a User instance
       User user = User(
           id: authMap['id'],
@@ -77,11 +89,46 @@ class AuthService {
     return token != null;
   }
 
-  Future<void> logout() async {
-    User user = User(id: "", fullName: "", bio: "", isVerified: false, pb: pb);
+  Future<void> logout(context, id) async {
+    await pb.collection('users').update(
+      id,
+      body: {"fcm_token": ""},
+    );
+
+    pb.authStore.clear();
     final prefs = await SharedPreferences.getInstance();
-    prefs.clear();
-    await storage.delete(key: 'token');
+    final cache = CacheManager();
+
+    pb.authStore.clear();
+    await storage.deleteAll();
+    await cache.clearMessages();
+    await prefs.clear();
+  }
+
+  Future<void> authRefresh() async {
+    final email = await storage.read(key: 'email');
+    final password = await storage.read(key: "password");
+
+    var fcmToken;
+    fcmToken = await FirebaseMessaging.instance.getToken();
+    if (kIsWeb) {
+      fcmToken = await FirebaseMessaging.instance.getToken(
+          vapidKey:
+              "BBT1WN2eSXbRVYatPTKRbUGfoGE4RTpSoMwNqzkhaGMtQXjiKGyvTkRmmsLy54GWwlsVqun6H04eMrQArVSoSnI");
+    }
+
+    final record =
+        await pb.collection('users').authWithPassword(email!, password!);
+    var userData = record.toJson();
+    var lastToken = userData['fcm_token'];
+
+    if (lastToken == "" || lastToken != fcmToken) {
+      var request = await pb.collection('users').update(
+        userData['id'],
+        body: {"fcm_token": fcmToken},
+      );
+      print(request);
+    }
   }
 }
 

@@ -4,7 +4,7 @@ import 'package:qalam/user_data.dart'; // Import the file where AuthService is d
 
 void main() {
   test('authenticate returns a User instance for valid credentials', () async {
-    final pb = PocketBase('https://ahrar.pockethost.io');
+    final pb = await PocketBase('https://ahrar.pockethost.io');
     final authService = AuthService(pb);
   });
 }
