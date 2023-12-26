@@ -32,6 +32,7 @@ class _AllConversationsState extends State<AllConversations>
   @override
   void initState() {
     super.initState();
+    CacheManager().clearMessages();
     fetchMessages();
     realtime();
   }
@@ -76,7 +77,7 @@ class _AllConversationsState extends State<AllConversations>
 
     final user = Provider.of<User>(context, listen: false);
     final fetcher = Fetcher(pb: user.pb);
-    final messages = await fetcher.fetchMessages();
+    final messages = await fetcher.fetchMessages(user.id);
     final cacheManager = CacheManager();
     if (messages.length == 0) {
       convos = [];
@@ -302,7 +303,7 @@ class _ConversationViewState extends State<ConversationView> {
     } else if (kIsWeb) {
       final fetcher = Fetcher(pb: user.pb);
       Timer.periodic(Duration(seconds: 5), (timer) async {
-        final newMessages = await fetcher.fetchMessages();
+        final newMessages = await fetcher.fetchMessages(user.id);
         for (var item in newMessages) {
           var message = item.toJson();
           if (!messages.contains(message['id'])) {

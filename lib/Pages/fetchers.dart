@@ -268,10 +268,12 @@ class Fetcher {
     await pb.collection('notifications').delete(target);
   }
 
-  Future fetchMessages() async {
-    final request = await pb.collection('messages').getList(sort: 'created');
+  Future fetchMessages(user) async {
+    final request = await pb.collection('messages').getList(
+          sort: 'created',
+          filter: 'to.id = "$user" || from.id = "$user"',
+        );
     final response = request.items;
-
     return response;
   }
 }
