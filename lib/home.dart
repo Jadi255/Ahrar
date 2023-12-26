@@ -1,25 +1,24 @@
-import "dart:io";
-import "package:flutter/foundation.dart";
-import 'package:flutter/material.dart';
-import "package:flutter/services.dart";
-import "package:go_router/go_router.dart";
-import "package:shared_preferences/shared_preferences.dart";
-import "package:tahrir/Pages/friends.dart";
-import "package:tahrir/Pages/profiles.dart";
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
-import "package:tahrir/Pages/swipe.dart";
-import "package:tahrir/Pages/topics.dart";
-import "package:tahrir/main.dart";
-import "package:tahrir/notifications.dart";
-import "package:tahrir/user_data.dart";
-import "package:url_launcher/url_launcher.dart";
-import "Pages/styles.dart";
-import "Pages/my_profile.dart";
-import 'pages/circle.dart';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:qalam/Pages/cache.dart';
+import 'package:qalam/Pages/chats.dart';
+import 'package:qalam/Pages/fetchers.dart';
+import 'package:qalam/Pages/homepage_posts.dart';
+import 'package:qalam/Pages/my_profile.dart';
+import 'package:qalam/Pages/notifications.dart';
+import 'package:qalam/Pages/search.dart';
+import 'package:qalam/Pages/topics.dart';
+import 'package:qalam/styles.dart';
+import 'package:qalam/user_data.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  final AuthService authService;
+  Home({super.key, required this.authService});
 
   @override
   State<Home> createState() => _HomeState();
@@ -27,147 +26,62 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   int _currentIndex = 0;
-  final List<Widget> _children = [
-    const Circle(),
-    const FriendsCircle(),
-    const TopicSelection(),
-    const SwipeCards(),
-    const Profile(),
-  ];
+  final _pageController = PageController();
+  var initConnectivityState;
+  int buildNo = 261223;
 
+<<<<<<< HEAD
   String buildNo = "261124";
+=======
+  final List<Widget> _children = [
+    const ViewPosts(),
+    const AllConversations(),
+    const Topics(),
+    MyProfile(
+      isLeading: false,
+    ),
+  ];
+>>>>>>> experimental
 
   @override
   void initState() {
-    WidgetsBinding.instance.addPostFrameCallback;
     super.initState();
-    checkAuth();
-    Future.delayed(Duration.zero, () {
-      checkAlerts();
-      if (!kIsWeb) {
-        if (Platform.isAndroid) {
-          checkUpdates();
-        }
-      }
+    Future.delayed(Duration.zero, () async {
+      await checkUpdates();
     });
+    getInitConnectivity();
+    messagesSubscriber();
+    getMessages();
   }
 
+<<<<<<< HEAD
   Future checkAuth() async {
     try {
       String placeholder = userID.split('')[0];
     } catch (e) {
       context.go('/login');
+=======
+  void getMessages() async {
+    final user = Provider.of<User>(context, listen: false);
+    final fetcher = Fetcher(pb: user.pb);
+    final messages = await fetcher.fetchMessages(user.id);
+    final cacheManager = CacheManager();
+    if (messages.length == 0) {
+      setState(() {});
+>>>>>>> experimental
     }
-  }
-
-  Future checkUpdates() async {
-    var request = await pb
-        .collection('version_control')
-        .getFullList(filter: 'latest = true');
-
-    if (request.isNotEmpty) {
-      var response = request[0].toJson();
-      if (response['build'] == buildNo) {
-        return;
-      }
-      showDialog(
-          barrierDismissible: false,
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-                backgroundColor: Colors.white,
-                surfaceTintColor: Colors.black,
-                iconColor: Colors.black,
-                title: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'يوجد تحديث جديد',
-                      textScaler: TextScaler.linear(0.75),
-                    ),
-                  ],
-                ),
-                content: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        Text(
-                            'تم إطلاق نسخة محدثة من تطبيق أحرار. هل ترغب بتحمليها الآن؟')
-                      ],
-                    ),
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: Text('لا'),
-                      style: TextButtonStyle),
-                  TextButton(
-                      onPressed: () async {
-                        await launchUrl(Uri.parse(response['repo']));
-                      },
-                      child: Text('نعم'),
-                      style: TextButtonStyle),
-                ]);
-          });
+    for (int i = 0; i < messages.length; i++) {
+      var item = messages[i].toJson();
+      final message = Message(
+        item['id'],
+        item['to'],
+        item['from'],
+        item['text'],
+        DateTime.parse(item['created']),
+        DateTime.parse(item['updated']),
+      );
+      await cacheManager.cacheMessage(message);
     }
-  }
-
-  Future checkAlerts() async {
-    var request = await pb.collection('alerts').getList(filter: 'seen = false');
-    var response = request.toJson();
-    if (response['items'].isEmpty) {
-      return;
-    }
-
-    var alert = response['items'][0];
-    String id = alert['id'];
-    String alertText = alert['alert'];
-
-    showDialog(
-        barrierDismissible: false,
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.black,
-              iconColor: Colors.black,
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    alert['title'],
-                    textScaler: TextScaler.linear(0.75),
-                  ),
-                ],
-              ),
-              content: Padding(
-                padding: EdgeInsets.all(20),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [Text(alertText)],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                    onPressed: () {
-                      pb.collection('alerts').update(id, body: {"seen": true});
-                      Navigator.of(context).pop();
-                    },
-                    child: Text('تم'),
-                    style: TextButtonStyle)
-              ]);
-        });
-  }
-
-  void onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
   }
 
   void showBuildVer() {
@@ -190,214 +104,296 @@ class _HomeState extends State<Home> {
             ),
             content: Padding(
               padding: EdgeInsets.all(20),
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    Text(
-                        textDirection: TextDirection.rtl,
-                        'إصدار رقم $buildNo\nتصميم جهاد ناصرالدين (C) ${DateTime.now().year}')
-                  ],
-                ),
-              ),
+              child: Text(
+                  textDirection: TextDirection.rtl,
+                  'إصدار رقم $buildNo\n\nتصميم جهاد ناصرالدين (C) ${DateTime.now().year}'),
             ),
           );
         });
   }
 
+  void messagesSubscriber() async {
+    final user = Provider.of<User>(context, listen: false);
+    final fetcher = Fetcher(pb: user.pb);
+    if (!kIsWeb) {
+      await user.pb.collection('notifications').subscribe(
+        '*',
+        (e) async {
+          var event = e.record!.toJson();
+          if (event['user'] == user.id) {
+            if (event['type'] == 'message' && event['seen'] == false) {
+              var sender = await fetcher.getUser(event['linked_id']);
+              var senderData = sender.toJson();
+              var name = senderData['full_name'];
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('رسالة جديدة من ${name}')));
+            }
+          }
+        },
+      );
+    } else if (kIsWeb) {
+      Timer.periodic(
+        Duration(seconds: 10),
+        (timer) async {
+          final notifications = await user.pb
+              .collection('notifications')
+              .getFullList(
+                  filter:
+                      'user.id = "${user.id}" && seen = false && type = "message"');
+          for (var event in notifications) {
+            var notification = event.toJson();
+            var sender = await fetcher.getUser(notification['linked_id']);
+            var senderData = sender.toJson();
+            var name = senderData['full_name'];
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('رسالة جديدة من ${name}')));
+          }
+        },
+      );
+    }
+  }
+
+  Future<void> getInitConnectivity() async {
+    initConnectivityState = await Connectivity().checkConnectivity();
+  }
+
+  void authRefresh() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    //await authService.authRefresh();
+  }
+
+  Stream<ConnectivityResult> connectivityStream() async* {
+    final Connectivity connectivity = Connectivity();
+    await for (ConnectivityResult result
+        in connectivity.onConnectivityChanged) {
+      if (result != initConnectivityState) {
+        initConnectivityState = result;
+        yield result;
+      }
+    }
+  }
+
+  void onTabTapped(int index) {
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  Future checkUpdates() async {
+    final user = Provider.of<User>(context, listen: false);
+    var request = await user.pb
+        .collection('version_control')
+        .getFullList(filter: 'latest = true');
+
+    if (request.isNotEmpty) {
+      var response = request[0].toJson();
+      if (response['build'] <= buildNo) {
+        return;
+      }
+      showDialog(
+          barrierDismissible: false,
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.black,
+                iconColor: Colors.black,
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'يوجد تحديث جديد',
+                      style: defaultText,
+                      textScaler: TextScaler.linear(0.75),
+                    ),
+                  ],
+                ),
+                content: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        Text(
+                          'تم إطلاق نسخة محدثة من تطبيق قلم. هل ترغب بتحمليها الآن؟',
+                          textDirection: TextDirection.rtl,
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: Text('لا'),
+                      style: TextButtonStyle),
+                  TextButton(
+                      onPressed: () async {
+                        await launchUrl(Uri.parse(response['repo']));
+                      },
+                      child: Text('نعم'),
+                      style: TextButtonStyle),
+                ]);
+          });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
+    var user = Provider.of<User>(context);
+    authRefresh();
+    connectivityStream().listen((event) {
+      if (event == ConnectivityResult.none) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
               children: [
-                const VerticalDivider(),
-                GestureDetector(
-                  onTap: () {
-                    showBuildVer();
-                  },
-                  child: coloredLogo,
-                )
+                Icon(
+                  Icons.wifi_off,
+                  color: Colors.white,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                  child: Text('أنت غير متصل بالإنترنت'),
+                ),
               ],
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  Icons.wifi,
+                  color: Colors.white,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                  child: Text('عاد الإتصال'),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    });
+
+    user.realTime();
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: GestureDetector(
+            onTap: () {
+              showBuildVer();
+            },
+            child: coloredLogo,
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 20.0),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            MyProfile(isLeading: true),
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                          var begin = Offset(1.0, 0.0);
+                          var end = Offset.zero;
+                          var curve = Curves.ease;
+
+                          var tween = Tween(begin: begin, end: end)
+                              .chain(CurveTween(curve: curve));
+
+                          return SlideTransition(
+                            position: animation.drive(tween),
+                            child: child,
+                          );
+                        },
+                      ));
+                },
+                child: CircleAvatar(
+                    backgroundColor: Colors.grey.shade100,
+                    foregroundImage: user.avatar,
+                    backgroundImage:
+                        Image.asset('assets/placeholder.jpg').image,
+                    radius: 15),
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                        SearchMenu(),
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                      var begin = Offset(1.0, 0.0);
+                      var end = Offset.zero;
+                      var curve = Curves.ease;
+
+                      var tween = Tween(begin: begin, end: end)
+                          .chain(CurveTween(curve: curve));
+
+                      return SlideTransition(
+                        position: animation.drive(tween),
+                        child: child,
+                      );
+                    },
+                  ),
+                );
+              },
+              icon: const Icon(Icons.search),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 5.0),
+              child: NotificationBell(),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            onPressed: () async {
-              var name = '$fname $lname';
-              final url =
-                  'قام $name بدعوتك إلى منصة أحرار\n\nhttps://ahrar.up.railway.app/#/viewProfileExtern/${userID}';
-              await Clipboard.setData(ClipboardData(text: url));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('تم نسخ رابط مشاركة الأصدقاء')),
-              );
-            },
-            icon: Icon(Icons.person_pin_rounded),
-          ),
-          IconButton(
-            onPressed: () {
-              showModalBottomSheet(
-                  context: context, builder: (context) => const SearchMenu());
-            },
-            icon: const Icon(Icons.search),
-          ),
-          Notifications()
-        ],
-      ),
-      body: _children[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        onTap: onTabTapped,
-        currentIndex: _currentIndex,
-        selectedItemColor: greenColor,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "الرئيسية",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: "أصدقائي",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.tag),
-            label: "مواضيع",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.swipe),
-            label: "إكتشف",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: "صفحتي",
-          )
-        ],
-      ),
-    );
-  }
-}
-
-class SearchMenu extends StatefulWidget {
-  const SearchMenu({super.key});
-
-  @override
-  State<SearchMenu> createState() => _SearchMenuState();
-}
-
-class _SearchMenuState extends State<SearchMenu> {
-  TextEditingController controller = TextEditingController();
-  Widget searchResults = Center(child: Text('', style: defaultText));
-  TextDirection textFieldTextDirection = TextDirection.ltr;
-
-  Future findFriends() async {
-    List<Widget> page = [];
-    if (controller.text == "") {
-      return;
-    }
-    setState(() {
-      searchResults = Center(child: shimmer);
-    });
-
-    var request = await pb.collection('users').getList(
-          filter: 'full_name ?~ "${controller.text}"',
-        );
-
-    var result = request.toJson()['items'];
-
-    if (result.isEmpty) {
-      setState(() {
-        searchResults = Center(
-          child: Text(
-            'لم نعثر على ${controller.text}',
-            style: defaultText,
-            textDirection: TextDirection.rtl,
-            textAlign: TextAlign.center,
-          ),
-        );
-      });
-      return;
-    }
-    for (var item in result) {
-      var target = await pb.collection('users').getOne(item['id']);
-      var friend = target.toJson();
-      String name = '${friend['fname']} ${friend['lname']}';
-      var avatarUrl = pb.getFileUrl(target, friend['avatar']).toString();
-
-      page.add(Card(
-        color: Colors.white,
-        surfaceTintColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: ListTile(
-            onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-                return ViewProfile(target: friend['id']);
-              }));
-            },
-            leading:
-                ClipOval(child: Image.network(avatarUrl, fit: BoxFit.cover)),
-            title: Text(name),
-          ),
+        body: PageView(
+          controller: _pageController,
+          children: _children,
+          onPageChanged: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
         ),
-      ));
-    }
-    setState(() {
-      searchResults = Column(
-        children: page,
-      );
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: true,
-        title: Text(
-          'بحث عن أصدقاء',
-          style: defaultText,
-        ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(child: searchResults),
-      bottomSheet: Container(
-        color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 5),
-          child: Row(
-            children: [
-              Flexible(
-                child: StatefulBuilder(builder: ((context, setState) {
-                  return TextField(
-                    onChanged: (value) {
-                      setState(() {
-                        textFieldTextDirection =
-                            RegExp(r'[\u0600-\u06FF]').hasMatch(value)
-                                ? TextDirection.rtl
-                                : TextDirection.ltr;
-                      });
-                    },
-                    textDirection: textFieldTextDirection,
-
-                    keyboardType: TextInputType.emailAddress,
-                    maxLines: null, // Add this line
-
-                    controller: controller,
-                    decoration: const InputDecoration(hintText: "ادخل الاسم"),
-                  );
-                })),
-              ),
-              IconButton(
-                onPressed: findFriends,
-                icon: const Icon(Icons.search),
-              )
-            ],
-          ),
+        bottomNavigationBar: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          onTap: onTabTapped,
+          currentIndex: _currentIndex,
+          selectedItemColor: greenColor,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: "الرئيسية",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.message_rounded),
+              label: "محادثات",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.tag),
+              label: "مواضيع",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: "صفحتي",
+            )
+          ],
         ),
       ),
     );
