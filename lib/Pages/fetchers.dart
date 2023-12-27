@@ -38,7 +38,6 @@ class Fetcher {
   }
 
   Future getTopicPosts(topic, page, perPage) async {
-    await pb.collection('users').authRefresh();
     final request = await pb.collection('circle_posts').getList(
         page: page,
         perPage: perPage,

@@ -84,7 +84,7 @@ class _NotificationBellState extends State<NotificationBell> {
         ],
       ),
       onPressed: () {
-        showBottomSheet(
+        showModalBottomSheet(
             context: context,
             enableDrag: false,
             builder: (context) {

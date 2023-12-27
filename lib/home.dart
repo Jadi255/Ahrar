@@ -28,7 +28,7 @@ class _HomeState extends State<Home> {
   int _currentIndex = 0;
   final _pageController = PageController();
   var initConnectivityState;
-  int buildNo = 271223;
+  int buildNo = 281223;
 
   final List<Widget> _children = [
     const ViewPosts(),
@@ -147,7 +147,7 @@ class _HomeState extends State<Home> {
 
   void authRefresh() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    //await authService.authRefresh();
+    await authService.authRefresh();
   }
 
   Stream<ConnectivityResult> connectivityStream() async* {

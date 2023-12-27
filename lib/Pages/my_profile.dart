@@ -124,7 +124,8 @@ class _MyProfileState extends State<MyProfile> {
                           trailing: const Icon(Icons.people),
                           title: Text('أصدقائي', style: defaultText),
                           onTap: () {
-                            showBottomSheet(
+                            showModalBottomSheet(
+                                enableDrag: false,
                                 context: context,
                                 builder: (context) {
                                   return Scaffold(

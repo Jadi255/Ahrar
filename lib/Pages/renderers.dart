@@ -639,7 +639,7 @@ class Renderer extends ChangeNotifier {
                           shadowColor: MaterialStatePropertyAll(Colors.white),
                           overlayColor: MaterialStatePropertyAll(Colors.white)),
                       onPressed: () async {
-                        showModalBottomSheet(
+                        showBottomSheet(
                             enableDrag: false,
                             backgroundColor: Colors.transparent,
                             context: context,
@@ -751,9 +751,7 @@ class Renderer extends ChangeNotifier {
       StreamController<List<Widget>> commentsStreamController) async {
     final fetcher = Fetcher(pb: pb);
     if (comments.isEmpty) {
-      commentWidgets = [
-        Center(child: Text('لا يوجد تعليقات', style: defaultText))
-      ];
+      commentWidgets = [];
       commentsStreamController.add(commentWidgets);
       return;
     }

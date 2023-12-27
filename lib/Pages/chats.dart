@@ -77,12 +77,14 @@ class _AllConversationsState extends State<AllConversations>
 
     final user = Provider.of<User>(context, listen: false);
     final fetcher = Fetcher(pb: user.pb);
-    final messages = await fetcher.fetchMessages(user.id);
+    var messages = await fetcher.fetchMessages(user.id);
     final cacheManager = CacheManager();
     if (messages.length == 0) {
       convos = [];
       setState(() {});
     }
+    messages = messages.reversed.toList();
+
     for (int i = 0; i < messages.length; i++) {
       var item = messages[i].toJson();
       final message = Message(

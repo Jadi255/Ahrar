@@ -67,7 +67,6 @@ class Writer {
   }
 
   Future deleteComment(id, context) async {
-    await pb.collection('users').authRefresh();
     await pb.collection('circle_comments').delete(id);
   }
 

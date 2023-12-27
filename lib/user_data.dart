@@ -119,7 +119,9 @@ class AuthService {
 
     final record =
         await pb.collection('users').authWithPassword(email!, password!);
-    var userData = record.toJson();
+    print(record.record!.id);
+    var userData = await record.record!.toJson();
+    print(userData['id']);
     var lastToken = userData['fcm_token'];
 
     if (lastToken == "" || lastToken != fcmToken) {
