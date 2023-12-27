@@ -54,13 +54,6 @@ class _HomeState extends State<Home> {
     getMessages();
   }
 
-<<<<<<< HEAD
-  Future checkAuth() async {
-    try {
-      String placeholder = userID.split('')[0];
-    } catch (e) {
-      context.go('/login');
-=======
   void getMessages() async {
     final user = Provider.of<User>(context, listen: false);
     final fetcher = Fetcher(pb: user.pb);
@@ -68,7 +61,6 @@ class _HomeState extends State<Home> {
     final cacheManager = CacheManager();
     if (messages.length == 0) {
       setState(() {});
->>>>>>> experimental
     }
     for (int i = 0; i < messages.length; i++) {
       var item = messages[i].toJson();
