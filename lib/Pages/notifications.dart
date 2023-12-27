@@ -309,68 +309,74 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
           await fetcher.markAsRead(notification['id']);
           break;
         case 'comment':
-          var commentRecord =
-              await fetcher.getComment(notification['linked_id']);
-          var comment = commentRecord.toJson();
-          var post = comment['post'];
-          var by = await fetcher.getUser(comment['by']);
-          var senderData = by.toJson();
-          final avatarUrl =
-              user.pb.getFileUrl(by, senderData['avatar']).toString();
+          try {
+            var commentRecord =
+                await fetcher.getComment(notification['linked_id']);
+            var comment = commentRecord.toJson();
+            var post = comment['post'];
+            var by = await fetcher.getUser(comment['by']);
+            var senderData = by.toJson();
+            final avatarUrl =
+                user.pb.getFileUrl(by, senderData['avatar']).toString();
 
-          Widget notificationCard = Card(
-            color: color,
-            surfaceTintColor: color,
-            elevation: 0.5,
-            child: pagePadding(
-              ListTile(
-                onTap: () async {
-                  Writer writer = Writer(pb: user.pb);
-                  await writer.markNotificationRead(notification['id']);
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) =>
-                          ChangeNotifierProvider(
-                        create: (context) => Renderer(
-                            fetcher: Fetcher(pb: user.pb), pb: user.pb),
-                        child: ShowFullPost(post: post),
+            Widget notificationCard = Card(
+              color: color,
+              surfaceTintColor: color,
+              elevation: 0.5,
+              child: pagePadding(
+                ListTile(
+                  onTap: () async {
+                    Writer writer = Writer(pb: user.pb);
+                    await writer.markNotificationRead(notification['id']);
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            ChangeNotifierProvider(
+                          create: (context) => Renderer(
+                              fetcher: Fetcher(pb: user.pb), pb: user.pb),
+                          child: ShowFullPost(post: post),
+                        ),
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                          var begin = Offset(1.0, 0.0);
+                          var end = Offset.zero;
+                          var curve = Curves.ease;
+
+                          var tween = Tween(begin: begin, end: end)
+                              .chain(CurveTween(curve: curve));
+
+                          return SlideTransition(
+                            position: animation.drive(tween),
+                            child: child,
+                          );
+                        },
                       ),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                        var begin = Offset(1.0, 0.0);
-                        var end = Offset.zero;
-                        var curve = Curves.ease;
-
-                        var tween = Tween(begin: begin, end: end)
-                            .chain(CurveTween(curve: curve));
-
-                        return SlideTransition(
-                          position: animation.drive(tween),
-                          child: child,
-                        );
-                      },
-                    ),
-                  );
-                },
-                leading: CircleAvatar(
-                  radius: 25,
-                  backgroundColor: Colors.grey.shade100,
-                  foregroundImage: CachedNetworkImageProvider(avatarUrl),
-                  backgroundImage: Image.asset('assets/placeholder.jpg').image,
+                    );
+                  },
+                  leading: CircleAvatar(
+                    radius: 25,
+                    backgroundColor: Colors.grey.shade100,
+                    foregroundImage: CachedNetworkImageProvider(avatarUrl),
+                    backgroundImage:
+                        Image.asset('assets/placeholder.jpg').image,
+                  ),
+                  title: Text('تعليق جديد',
+                      style: defaultText, textDirection: TextDirection.rtl),
+                  subtitle: Text(
+                      'علق المستخدم ${senderData['full_name']} على منشور تتابعه',
+                      textDirection: TextDirection.rtl),
                 ),
-                title: Text('تعليق جديد',
-                    style: defaultText, textDirection: TextDirection.rtl),
-                subtitle: Text(
-                    'علق المستخدم ${senderData['full_name']} على منشور تتابعه',
-                    textDirection: TextDirection.rtl),
               ),
-            ),
-          );
+            );
 
-          widgets.add(notificationCard);
-          await fetcher.markAsRead(notification['id']);
-
+            widgets.add(notificationCard);
+            await fetcher.markAsRead(notification['id']);
+          } catch (e) {
+            await user.pb
+                .collection('notifications')
+                .delete(notification['id']);
+          }
           break;
         case 'message':
           final request = await fetcher.getUser(notification['linked_id']);
