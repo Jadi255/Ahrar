@@ -826,6 +826,8 @@ class Renderer extends ChangeNotifier {
                               Writer writer = Writer(pb: pb);
                               int index = commentIDs.indexOf(post['id']);
                               String id = commentIDs[index];
+                              final authService = AuthService(pb);
+                              await authService.authRefresh();
                               await writer.deleteComment(id, context);
                               commentIDs.removeAt(index);
                               commentWidgets.removeAt(index);
