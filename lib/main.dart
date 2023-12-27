@@ -2,30 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tahrir/user_data.dart';
-import 'Pages/friends.dart' hide ShowComments;
-import 'Pages/circle.dart';
-import 'Pages/profiles.dart';
-import 'Pages/settings.dart';
-import 'Pages/topics.dart';
-import 'Pages/styles.dart';
-import 'Pages/auth.dart';
-import 'home.dart';
-import 'Pages/signup.dart' hide id;
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
-
-  String? email = await prefs.getString('email');
-  String? password = await prefs.getString('password');
-
-  var checkAuth = await authenticate(email, password);
-  print(checkAuth);
-=======
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:pocketbase/pocketbase.dart';
 import 'package:provider/provider.dart';
@@ -59,7 +35,6 @@ void main() async {
       isVerified: false,
       avatar: null,
       pb: authService.pb); // make sure 'user' is your global User instance
->>>>>>> experimental
   runApp(
     MultiProvider(
       providers: [

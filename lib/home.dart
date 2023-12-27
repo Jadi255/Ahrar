@@ -28,11 +28,8 @@ class _HomeState extends State<Home> {
   int _currentIndex = 0;
   final _pageController = PageController();
   var initConnectivityState;
-  int buildNo = 261223;
+  int buildNo = 271223;
 
-<<<<<<< HEAD
-  String buildNo = "261124";
-=======
   final List<Widget> _children = [
     const ViewPosts(),
     const AllConversations(),
@@ -41,7 +38,6 @@ class _HomeState extends State<Home> {
       isLeading: false,
     ),
   ];
->>>>>>> experimental
 
   @override
   void initState() {
@@ -290,36 +286,11 @@ class _HomeState extends State<Home> {
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 20.0),
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                      context,
-                      PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            MyProfile(isLeading: true),
-                        transitionsBuilder:
-                            (context, animation, secondaryAnimation, child) {
-                          var begin = Offset(1.0, 0.0);
-                          var end = Offset.zero;
-                          var curve = Curves.ease;
-
-                          var tween = Tween(begin: begin, end: end)
-                              .chain(CurveTween(curve: curve));
-
-                          return SlideTransition(
-                            position: animation.drive(tween),
-                            child: child,
-                          );
-                        },
-                      ));
-                },
-                child: CircleAvatar(
-                    backgroundColor: Colors.grey.shade100,
-                    foregroundImage: user.avatar,
-                    backgroundImage:
-                        Image.asset('assets/placeholder.jpg').image,
-                    radius: 15),
-              ),
+              child: CircleAvatar(
+                  backgroundColor: Colors.grey.shade100,
+                  foregroundImage: user.avatar,
+                  backgroundImage: Image.asset('assets/placeholder.jpg').image,
+                  radius: 15),
             ),
             IconButton(
               onPressed: () {
