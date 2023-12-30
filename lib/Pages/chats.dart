@@ -13,7 +13,6 @@ import 'package:qalam/Pages/profile_settings.dart';
 import 'package:qalam/Pages/writers.dart';
 import 'package:qalam/styles.dart';
 import 'package:qalam/user_data.dart';
-import 'package:qalam/encryption.dart';
 
 class AllConversations extends StatefulWidget {
   const AllConversations({super.key});
@@ -32,7 +31,6 @@ class _AllConversationsState extends State<AllConversations>
   @override
   void initState() {
     super.initState();
-    CacheManager().clearMessages();
     fetchMessages();
     realtime();
   }
@@ -68,6 +66,20 @@ class _AllConversationsState extends State<AllConversations>
     }
   }
 
+  String formatDate(DateTime date) {
+    date = date.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final aDate = DateTime(date.year, date.month, date.day);
+    var hour = date.hour;
+    var minutes = date.minute;
+    if (aDate == today) {
+      return '$hour:$minutes';
+    } else {
+      return '${aDate.day}/${aDate.month}\n$hour:$minutes';
+    }
+  }
+
   Future fetchMessages() async {
     conversations.clear();
 
@@ -83,7 +95,6 @@ class _AllConversationsState extends State<AllConversations>
       convos = [];
       setState(() {});
     }
-    messages = messages.reversed.toList();
 
     for (int i = 0; i < messages.length; i++) {
       var item = messages[i].toJson();
@@ -107,10 +118,13 @@ class _AllConversationsState extends State<AllConversations>
     conversations = conversations.toSet().toList();
     for (var conversation in conversations) {
       String? lastText;
-      for (var item in messages) {
+      var msgTime;
+      var setLatest = messages.reversed.toList();
+      for (var item in setLatest) {
         var message = item.toJson();
         if (message['from'] == conversation || message['to'] == conversation) {
           lastText = message['text'];
+          msgTime = formatDate(DateTime.parse(message['created']));
         }
       }
       var request = await fetcher.getUser(conversation);
@@ -124,41 +138,48 @@ class _AllConversationsState extends State<AllConversations>
           child: Padding(
             padding: const EdgeInsets.all(10.0),
             child: ListTile(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) =>
-                          ConversationView(
-                        id: chatPartner['id'],
-                        name: chatPartner['full_name'],
-                        avatar: avatarUrl,
-                      ),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                        var begin = Offset(1.0, 0.0);
-                        var end = Offset.zero;
-                        var curve = Curves.ease;
-
-                        var tween = Tween(begin: begin, end: end)
-                            .chain(CurveTween(curve: curve));
-
-                        return SlideTransition(
-                          position: animation.drive(tween),
-                          child: child,
-                        );
-                      },
+              onTap: () {
+                Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                        ConversationView(
+                      id: chatPartner['id'],
+                      name: chatPartner['full_name'],
+                      avatar: avatarUrl,
                     ),
-                  );
-                },
-                leading: CircleAvatar(
-                  radius: 25,
-                  backgroundColor: Colors.grey.shade100,
-                  foregroundImage: CachedNetworkImageProvider(avatarUrl),
-                  backgroundImage: Image.asset('assets/placeholder.jpg').image,
-                ),
-                title: Text(chatPartner['full_name'], style: defaultText),
-                subtitle: Text(lastText!)),
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                      var begin = Offset(1.0, 0.0);
+                      var end = Offset.zero;
+                      var curve = Curves.ease;
+
+                      var tween = Tween(begin: begin, end: end)
+                          .chain(CurveTween(curve: curve));
+
+                      return SlideTransition(
+                        position: animation.drive(tween),
+                        child: child,
+                      );
+                    },
+                  ),
+                );
+              },
+              leading: CircleAvatar(
+                radius: 25,
+                backgroundColor: Colors.grey.shade100,
+                foregroundImage: CachedNetworkImageProvider(avatarUrl),
+                backgroundImage: Image.asset('assets/placeholder.jpg').image,
+              ),
+              title: Text(chatPartner['full_name'],
+                  style: defaultText, textScaler: TextScaler.linear(0.90)),
+              subtitle: Text(lastText!, textScaler: TextScaler.linear(0.80)),
+              trailing: Text(
+                msgTime,
+                textAlign: TextAlign.center,
+                textScaler: TextScaler.linear(0.75),
+              ),
+            ),
           ),
         ),
       );
@@ -384,7 +405,6 @@ class _ConversationViewState extends State<ConversationView> {
       if (lastDate == null || !isSameDay(lastDate, message.created)) {
         if (message.from == widget.id || message.to == widget.id) {
           lastDate = message.created;
-          print(lastDate);
           final dateChip = Center(
             child: Card(
               child: Padding(

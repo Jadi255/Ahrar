@@ -28,7 +28,7 @@ class _HomeState extends State<Home> {
   int _currentIndex = 0;
   final _pageController = PageController();
   var initConnectivityState;
-  int buildNo = 281223;
+  int buildNo = 291223;
 
   final List<Widget> _children = [
     const ViewPosts(),
@@ -44,10 +44,60 @@ class _HomeState extends State<Home> {
     super.initState();
     Future.delayed(Duration.zero, () async {
       await checkUpdates();
+      await getAlerts();
     });
     getInitConnectivity();
     messagesSubscriber();
     getMessages();
+  }
+
+  Future getAlerts() async {
+    final user = Provider.of<User>(context, listen: false);
+    var fetcher = Fetcher(pb: user.pb);
+    var request = await fetcher.getAlerts(user.id);
+    print(request);
+    for (var i = 0; i < request.length; i++) {
+      var alert = await request[i]!.toJson();
+      String id = alert['id'];
+      String alertText = alert['alert'];
+      showDialog(
+          barrierDismissible: false,
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.black,
+                iconColor: Colors.black,
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      alert['title'],
+                      textScaler: TextScaler.linear(0.75),
+                    ),
+                  ],
+                ),
+                content: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [Text(alertText)],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        user.pb
+                            .collection('alerts')
+                            .update(id, body: {"seen": true});
+                        Navigator.of(context).pop();
+                      },
+                      child: Text('تم'),
+                      style: TextButtonStyle)
+                ]);
+          });
+    }
   }
 
   void getMessages() async {
@@ -102,40 +152,18 @@ class _HomeState extends State<Home> {
 
   void messagesSubscriber() async {
     final user = Provider.of<User>(context, listen: false);
-    final fetcher = Fetcher(pb: user.pb);
     if (!kIsWeb) {
       await user.pb.collection('notifications').subscribe(
         '*',
         (e) async {
-          var event = e.record!.toJson();
-          if (event['user'] == user.id) {
-            if (event['type'] == 'message' && event['seen'] == false) {
-              var sender = await fetcher.getUser(event['linked_id']);
-              var senderData = sender.toJson();
-              var name = senderData['full_name'];
-              ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('رسالة جديدة من ${name}')));
-            }
-          }
+          getMessages();
         },
       );
     } else if (kIsWeb) {
       Timer.periodic(
         Duration(seconds: 10),
         (timer) async {
-          final notifications = await user.pb
-              .collection('notifications')
-              .getFullList(
-                  filter:
-                      'user.id = "${user.id}" && seen = false && type = "message"');
-          for (var event in notifications) {
-            var notification = event.toJson();
-            var sender = await fetcher.getUser(notification['linked_id']);
-            var senderData = sender.toJson();
-            var name = senderData['full_name'];
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('رسالة جديدة من ${name}')));
-          }
+          getMessages();
         },
       );
     }

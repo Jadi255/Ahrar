@@ -639,7 +639,8 @@ class Renderer extends ChangeNotifier {
                           shadowColor: MaterialStatePropertyAll(Colors.white),
                           overlayColor: MaterialStatePropertyAll(Colors.white)),
                       onPressed: () async {
-                        showBottomSheet(
+                        showModalBottomSheet(
+                            isScrollControlled: true,
                             enableDrag: false,
                             backgroundColor: Colors.transparent,
                             context: context,
@@ -647,10 +648,13 @@ class Renderer extends ChangeNotifier {
                               return ChangeNotifierProvider<Renderer>(
                                 create: (context) => Renderer(
                                     fetcher: Fetcher(pb: user.pb), pb: user.pb),
-                                child: ShowComments(
-                                  post: post,
-                                  fetcher: _fetcher,
-                                  comments: comments,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 50.0),
+                                  child: ShowComments(
+                                    post: post,
+                                    fetcher: _fetcher,
+                                    comments: comments,
+                                  ),
                                 ),
                               );
                             });
@@ -1717,6 +1721,12 @@ class _CreatePostState extends State<CreatePost> {
                       child: IconButton(
                         icon: const Icon(Icons.send),
                         onPressed: () async {
+                          showDialog(
+                              context: context,
+                              builder: (context) {
+                                return CupertinoActivityIndicator(
+                                    color: Colors.white);
+                              });
                           List truthTable = [];
                           truthTable.add(controller.text == "");
                           truthTable.add(multipartFiles.isEmpty);
@@ -1759,6 +1769,7 @@ class _CreatePostState extends State<CreatePost> {
                               videoLink.text);
 
                           topics.clear();
+                          Navigator.of(context).pop();
                           Navigator.of(context).pop();
                         },
                       ),
@@ -1830,112 +1841,36 @@ class _ShowFullPostState extends State<ShowFullPost> {
         color: greenColor,
       ));
   TextDirection textDirection = TextDirection.ltr;
+  bool isSending = false;
+  Widget icon = Icon(Icons.send);
+  @override
+  void initState() {
+    super.initState();
 
-  Future getPost() async {
-    var user = Provider.of<User>(context, listen: false);
-    final fetcher = Fetcher(pb: user.pb);
-    final Renderer renderer = Renderer(fetcher: fetcher, pb: user.pb);
-
-    var record = await fetcher.getPost(widget.post);
-    var post = record.toJson();
-    var postWidget = await renderer.createPostWidget(
-        post, user.fullName, user.avatar!, user);
-    List<Widget> commentWidgets = [];
-    for (var item in post['comments']) {
-      var record = await fetcher.getComment(item);
-      var commentWidget = await renderer.createCommentCard(record, context);
-      commentWidgets.add(commentWidget);
-    }
-    var container = pagePadding(Column(
-      children: [postWidget, pagePadding(Column(children: commentWidgets))],
-    ));
-
-    return container;
+    print("Post widget argument: ${widget.post}");
   }
 
   @override
   Widget build(BuildContext context) {
+    Renderer renderer = Provider.of<Renderer>(context);
+
+    Future getPost() async {
+      var user = Provider.of<User>(context, listen: false);
+      final fetcher = Fetcher(pb: user.pb);
+      var record = await fetcher.getPost(widget.post);
+      var post = record.toJson();
+      var postWidget = await renderer.createPostWidget(
+          post, user.fullName, user.avatar!, user);
+      var container = pagePadding(
+        postWidget,
+      );
+
+      return container;
+    }
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: true,
-      ),
-      bottomSheet: Card(
-        color: Colors.white,
-        surfaceTintColor: Colors.white,
-        child: pagePadding(
-          Directionality(
-            textDirection: TextDirection.rtl,
-            child: StatefulBuilder(
-              builder: ((context, setState) {
-                return Row(
-                  children: [
-                    Directionality(
-                      textDirection: TextDirection.ltr,
-                      child: IconButton(
-                        icon: Icon(Icons.send),
-                        onPressed: () async {
-                          final comment = controller.text;
-                          final post = widget.post['id'];
-                          final renderer =
-                              Provider.of<Renderer>(context, listen: false);
-                          final user =
-                              Provider.of<User>(context, listen: false);
-                          final id = user.id;
-                          final writer = Writer(pb: user.pb);
-
-                          final newComment =
-                              await writer.writeComment(comment, post, id);
-                          renderer.newComment(newComment, context);
-                        },
-                      ),
-                    ),
-                    Expanded(
-                      child: DetectableTextField(
-                        enableSuggestions: true,
-                        enableInteractiveSelection: true,
-                        maxLines: null,
-                        textDirection: textDirection,
-                        onChanged: (value) async {
-                          if (controller.text == '') {
-                            return;
-                          } else {
-                            setState(
-                              () {
-                                textDirection =
-                                    isArabic(controller.text.split('')[0])
-                                        ? TextDirection.rtl
-                                        : TextDirection.ltr;
-                              },
-                            );
-                          }
-                          if (hashTagRegExp.hasMatch(value)) {
-                            print('topic: $value');
-                          }
-                        },
-                        controller: controller,
-                        decoration: InputDecoration(
-                          label: Text('اضف تعليق'),
-                          labelStyle: TextStyle(
-                            color: Colors.black, // Set your desired color
-                          ),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 15, vertical: 10),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(
-                                30), // Circular/Oval border
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              }),
-            ),
-          ),
-        ),
       ),
       body: SingleChildScrollView(
         child: FutureBuilder(

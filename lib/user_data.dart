@@ -30,11 +30,15 @@ class AuthService {
     await prefs.clear();
     await storage.deleteAll();
     var fcmToken;
-    fcmToken = await FirebaseMessaging.instance.getToken();
-    if (kIsWeb) {
-      fcmToken = await FirebaseMessaging.instance.getToken(
-          vapidKey:
-              "BBT1WN2eSXbRVYatPTKRbUGfoGE4RTpSoMwNqzkhaGMtQXjiKGyvTkRmmsLy54GWwlsVqun6H04eMrQArVSoSnI");
+    try {
+      fcmToken = await FirebaseMessaging.instance.getToken();
+      if (kIsWeb) {
+        fcmToken = await FirebaseMessaging.instance.getToken(
+            vapidKey:
+                "BBT1WN2eSXbRVYatPTKRbUGfoGE4RTpSoMwNqzkhaGMtQXjiKGyvTkRmmsLy54GWwlsVqun6H04eMrQArVSoSnI");
+      }
+    } catch (e) {
+      fcmToken = 'null';
     }
 
     try {
@@ -110,11 +114,15 @@ class AuthService {
     final password = await storage.read(key: "password");
 
     var fcmToken;
-    fcmToken = await FirebaseMessaging.instance.getToken();
-    if (kIsWeb) {
-      fcmToken = await FirebaseMessaging.instance.getToken(
-          vapidKey:
-              "BBT1WN2eSXbRVYatPTKRbUGfoGE4RTpSoMwNqzkhaGMtQXjiKGyvTkRmmsLy54GWwlsVqun6H04eMrQArVSoSnI");
+    try {
+      fcmToken = await FirebaseMessaging.instance.getToken();
+      if (kIsWeb) {
+        fcmToken = await FirebaseMessaging.instance.getToken(
+            vapidKey:
+                "BBT1WN2eSXbRVYatPTKRbUGfoGE4RTpSoMwNqzkhaGMtQXjiKGyvTkRmmsLy54GWwlsVqun6H04eMrQArVSoSnI");
+      }
+    } catch (e) {
+      fcmToken = 'null';
     }
 
     final record =

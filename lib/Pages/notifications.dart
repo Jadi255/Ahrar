@@ -140,173 +140,183 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
       var type = notification['type'];
       switch (type) {
         case 'request':
-          var sender = await fetcher.getUser(notification['linked_id']);
-          var senderData = sender.toJson();
-          final avatarUrl =
-              user.pb.getFileUrl(sender, senderData['avatar']).toString();
+          try {
+            var sender = await fetcher.getUser(notification['linked_id']);
+            var senderData = sender.toJson();
+            final avatarUrl =
+                user.pb.getFileUrl(sender, senderData['avatar']).toString();
 
-          Widget notificationCard = Card(
-            color: color,
-            surfaceTintColor: color,
-            elevation: 0.5,
-            child: pagePadding(
-              ListTile(
-                onTap: () async {
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      return Directionality(
-                        textDirection: TextDirection.rtl,
-                        child: AlertDialog(
-                            backgroundColor: Colors.white,
-                            surfaceTintColor: Colors.white,
-                            content: Text(
-                                'أرسل لك المستخدم ${senderData['full_name']} طلب صداقة',
-                                style: defaultText),
-                            actions: [
-                              TextButton(
-                                style: ButtonStyle(
-                                    foregroundColor:
-                                        MaterialStatePropertyAll(blackColor)),
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    PageRouteBuilder(
-                                      pageBuilder: (context, animation,
-                                              secondaryAnimation) =>
-                                          UserProfile(
-                                              id: senderData['id'],
-                                              fullName:
-                                                  senderData['full_name']),
-                                      transitionsBuilder: (context, animation,
-                                          secondaryAnimation, child) {
-                                        var begin = Offset(1.0, 0.0);
-                                        var end = Offset.zero;
-                                        var curve = Curves.ease;
+            Widget notificationCard = Card(
+              color: color,
+              surfaceTintColor: color,
+              elevation: 0.5,
+              child: pagePadding(
+                ListTile(
+                  onTap: () async {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return Directionality(
+                          textDirection: TextDirection.rtl,
+                          child: AlertDialog(
+                              backgroundColor: Colors.white,
+                              surfaceTintColor: Colors.white,
+                              content: Text(
+                                  'أرسل لك المستخدم ${senderData['full_name']} طلب صداقة',
+                                  style: defaultText),
+                              actions: [
+                                TextButton(
+                                  style: ButtonStyle(
+                                      foregroundColor:
+                                          MaterialStatePropertyAll(blackColor)),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      PageRouteBuilder(
+                                        pageBuilder: (context, animation,
+                                                secondaryAnimation) =>
+                                            UserProfile(
+                                                id: senderData['id'],
+                                                fullName:
+                                                    senderData['full_name']),
+                                        transitionsBuilder: (context, animation,
+                                            secondaryAnimation, child) {
+                                          var begin = Offset(1.0, 0.0);
+                                          var end = Offset.zero;
+                                          var curve = Curves.ease;
 
-                                        var tween = Tween(
-                                                begin: begin, end: end)
-                                            .chain(CurveTween(curve: curve));
+                                          var tween = Tween(
+                                                  begin: begin, end: end)
+                                              .chain(CurveTween(curve: curve));
 
-                                        return SlideTransition(
-                                          position: animation.drive(tween),
-                                          child: child,
-                                        );
-                                      },
-                                    ),
-                                  );
-                                },
-                                child: Text('عرض الصفحة الشخصية'),
-                              ),
-                              TextButton(
-                                style: ButtonStyle(
-                                    foregroundColor:
-                                        MaterialStatePropertyAll(greenColor)),
-                                onPressed: () async {
-                                  await fetcher.acceptRequest(
-                                      user.id,
-                                      notification['linked_id'],
-                                      notification['id']);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('تم قبول طلب الصداقة'),
-                                    ),
-                                  );
-                                },
-                                child: Text('قبول'),
-                              ),
-                              TextButton(
-                                style: ButtonStyle(
-                                    foregroundColor:
-                                        MaterialStatePropertyAll(redColor)),
-                                onPressed: () async {
-                                  await fetcher
-                                      .ignoreRequest(notification['id']);
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text('تجاهل'),
-                              ),
-                            ]),
-                      );
-                    },
-                  );
-                  Writer writer = Writer(pb: user.pb);
-                  await writer.markNotificationRead(notification['id']);
-                },
-                leading: CircleAvatar(
-                  radius: 25,
-                  backgroundColor: Colors.grey.shade100,
-                  foregroundImage: CachedNetworkImageProvider(avatarUrl),
-                  backgroundImage: Image.asset('assets/placeholder.jpg').image,
-                ),
-                title: Text(
-                  'طلب صداقة',
-                  style: defaultText,
-                  textDirection: TextDirection.rtl,
-                ),
-                subtitle: Text(
-                    'أرسل لك المستخدم ${senderData['full_name']} طلب صداقة',
-                    textDirection: TextDirection.rtl),
-              ),
-            ),
-          );
-
-          widgets.add(notificationCard);
-          break;
-        case 'alert':
-          var sender = await fetcher.getUser(notification['linked_id']);
-          var senderData = sender.toJson();
-          final avatarUrl =
-              user.pb.getFileUrl(sender, senderData['avatar']).toString();
-
-          Widget notificationCard = Card(
-            color: color,
-            surfaceTintColor: color,
-            elevation: 0.5,
-            child: pagePadding(
-              ListTile(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) =>
-                          UserProfile(
-                              id: senderData['id'],
-                              fullName: senderData['full_name']),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                        var begin = Offset(1.0, 0.0);
-                        var end = Offset.zero;
-                        var curve = Curves.ease;
-
-                        var tween = Tween(begin: begin, end: end)
-                            .chain(CurveTween(curve: curve));
-
-                        return SlideTransition(
-                          position: animation.drive(tween),
-                          child: child,
+                                          return SlideTransition(
+                                            position: animation.drive(tween),
+                                            child: child,
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  },
+                                  child: Text('عرض الصفحة الشخصية'),
+                                ),
+                                TextButton(
+                                  style: ButtonStyle(
+                                      foregroundColor:
+                                          MaterialStatePropertyAll(greenColor)),
+                                  onPressed: () async {
+                                    await fetcher.acceptRequest(
+                                        user.id,
+                                        notification['linked_id'],
+                                        notification['id']);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('تم قبول طلب الصداقة'),
+                                      ),
+                                    );
+                                  },
+                                  child: Text('قبول'),
+                                ),
+                                TextButton(
+                                  style: ButtonStyle(
+                                      foregroundColor:
+                                          MaterialStatePropertyAll(redColor)),
+                                  onPressed: () async {
+                                    await fetcher
+                                        .ignoreRequest(notification['id']);
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text('تجاهل'),
+                                ),
+                              ]),
                         );
                       },
-                    ),
-                  );
-                },
-                leading: CircleAvatar(
-                  radius: 25,
-                  backgroundColor: Colors.grey.shade100,
-                  foregroundImage: CachedNetworkImageProvider(avatarUrl),
-                  backgroundImage: Image.asset('assets/placeholder.jpg').image,
-                ),
-                title: Text(
-                  'قبل المستخدم ${senderData['full_name']} طلب صداقتك',
-                  style: defaultText,
-                  textDirection: TextDirection.rtl,
+                    );
+                    Writer writer = Writer(pb: user.pb);
+                    await writer.markNotificationRead(notification['id']);
+                  },
+                  leading: CircleAvatar(
+                    radius: 25,
+                    backgroundColor: Colors.grey.shade100,
+                    foregroundImage: CachedNetworkImageProvider(avatarUrl),
+                    backgroundImage:
+                        Image.asset('assets/placeholder.jpg').image,
+                  ),
+                  title: Text(
+                    'طلب صداقة',
+                    style: defaultText,
+                    textDirection: TextDirection.rtl,
+                  ),
+                  subtitle: Text(
+                      'أرسل لك المستخدم ${senderData['full_name']} طلب صداقة',
+                      textDirection: TextDirection.rtl),
                 ),
               ),
-            ),
-          );
+            );
 
-          widgets.add(notificationCard);
-          await fetcher.markAsRead(notification['id']);
+            widgets.add(notificationCard);
+          } catch (e) {
+            print(e);
+          }
+          break;
+        case 'alert':
+          try {
+            var sender = await fetcher.getUser(notification['linked_id']);
+            var senderData = sender.toJson();
+            final avatarUrl =
+                user.pb.getFileUrl(sender, senderData['avatar']).toString();
+
+            Widget notificationCard = Card(
+              color: color,
+              surfaceTintColor: color,
+              elevation: 0.5,
+              child: pagePadding(
+                ListTile(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            UserProfile(
+                                id: senderData['id'],
+                                fullName: senderData['full_name']),
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                          var begin = Offset(1.0, 0.0);
+                          var end = Offset.zero;
+                          var curve = Curves.ease;
+
+                          var tween = Tween(begin: begin, end: end)
+                              .chain(CurveTween(curve: curve));
+
+                          return SlideTransition(
+                            position: animation.drive(tween),
+                            child: child,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  leading: CircleAvatar(
+                    radius: 25,
+                    backgroundColor: Colors.grey.shade100,
+                    foregroundImage: CachedNetworkImageProvider(avatarUrl),
+                    backgroundImage:
+                        Image.asset('assets/placeholder.jpg').image,
+                  ),
+                  title: Text(
+                    'قبل المستخدم ${senderData['full_name']} طلب صداقتك',
+                    style: defaultText,
+                    textDirection: TextDirection.rtl,
+                  ),
+                ),
+              ),
+            );
+
+            widgets.add(notificationCard);
+            await fetcher.markAsRead(notification['id']);
+          } catch (e) {
+            print(e);
+          }
           break;
         case 'comment':
           try {
@@ -379,58 +389,63 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
           }
           break;
         case 'message':
-          final request = await fetcher.getUser(notification['linked_id']);
-          final sender = request.toJson();
-          final avatarUrl =
-              user.pb.getFileUrl(request, sender['avatar']).toString();
+          try {
+            final request = await fetcher.getUser(notification['linked_id']);
+            final sender = request.toJson();
+            final avatarUrl =
+                user.pb.getFileUrl(request, sender['avatar']).toString();
 
-          widgets.add(
-            Card(
-              color: color,
-              surfaceTintColor: color,
-              elevation: 0.5,
-              child: pagePadding(
-                ListTile(
-                  onTap: () async {
-                    Navigator.push(
-                      context,
-                      PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            ConversationView(
-                                name: sender['full_name'],
-                                id: sender['id'],
-                                avatar: avatarUrl),
-                        transitionsBuilder:
-                            (context, animation, secondaryAnimation, child) {
-                          var begin = Offset(1.0, 0.0);
-                          var end = Offset.zero;
-                          var curve = Curves.ease;
+            widgets.add(
+              Card(
+                color: color,
+                surfaceTintColor: color,
+                elevation: 0.5,
+                child: pagePadding(
+                  ListTile(
+                    onTap: () async {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder:
+                              (context, animation, secondaryAnimation) =>
+                                  ConversationView(
+                                      name: sender['full_name'],
+                                      id: sender['id'],
+                                      avatar: avatarUrl),
+                          transitionsBuilder:
+                              (context, animation, secondaryAnimation, child) {
+                            var begin = Offset(1.0, 0.0);
+                            var end = Offset.zero;
+                            var curve = Curves.ease;
 
-                          var tween = Tween(begin: begin, end: end)
-                              .chain(CurveTween(curve: curve));
+                            var tween = Tween(begin: begin, end: end)
+                                .chain(CurveTween(curve: curve));
 
-                          return SlideTransition(
-                            position: animation.drive(tween),
-                            child: child,
-                          );
-                        },
-                      ),
-                    );
-                  },
-                  leading: CircleAvatar(
-                    radius: 25,
-                    backgroundColor: Colors.grey.shade100,
-                    foregroundImage: CachedNetworkImageProvider(avatarUrl),
-                    backgroundImage:
-                        Image.asset('assets/placeholder.jpg').image,
+                            return SlideTransition(
+                              position: animation.drive(tween),
+                              child: child,
+                            );
+                          },
+                        ),
+                      );
+                    },
+                    leading: CircleAvatar(
+                      radius: 25,
+                      backgroundColor: Colors.grey.shade100,
+                      foregroundImage: CachedNetworkImageProvider(avatarUrl),
+                      backgroundImage:
+                          Image.asset('assets/placeholder.jpg').image,
+                    ),
+                    title: Text('لديك رسالة جديدة من ${sender['full_name']}',
+                        style: defaultText, textDirection: TextDirection.rtl),
                   ),
-                  title: Text('لديك رسالة جديدة من ${sender['full_name']}',
-                      style: defaultText, textDirection: TextDirection.rtl),
                 ),
               ),
-            ),
-          );
-          await fetcher.markAsRead(notification['id']);
+            );
+            await fetcher.markAsRead(notification['id']);
+          } catch (e) {
+            print(e);
+          }
           break;
       }
       yield widgets;

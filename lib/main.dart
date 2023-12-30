@@ -21,8 +21,12 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  await FirebaseMessaging.instance.requestPermission(provisional: true);
-  await FirebaseMessaging.instance.setAutoInitEnabled(true);
+  try {
+    await FirebaseMessaging.instance.requestPermission(provisional: true);
+    await FirebaseMessaging.instance.setAutoInitEnabled(true);
+  } catch (e) {
+    print(e);
+  }
   final pb = await PocketBase('https://ahrar.pockethost.io');
   final authService = AuthService(pb);
   await Hive.initFlutter();

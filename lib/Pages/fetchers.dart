@@ -268,11 +268,19 @@ class Fetcher {
   }
 
   Future fetchMessages(user) async {
-    final request = await pb.collection('messages').getList(
-          sort: 'created',
+    final request = await pb.collection('messages').getFullList(
+          sort: '-created',
           filter: 'to.id = "$user" || from.id = "$user"',
         );
-    final response = request.items;
-    return response;
+    return request;
+  }
+
+  Future getAlerts(user) async {
+    var alerts = await pb.collection('alerts').getFullList(
+          filter: 'seen = false && to.id = "$user"',
+        );
+
+    print("alerts: $alerts");
+    return alerts;
   }
 }

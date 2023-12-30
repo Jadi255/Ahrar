@@ -164,21 +164,27 @@ class _LoginState extends State<Login> {
                           final email = emailController.text;
                           final password = passwordController.text;
                           try {
-                            final user = await authService.authenticate(
+                            await authService.authenticate(
                                 email, password, context);
                             btnText = Icon(Icons.check);
                             Navigator.of(context).pushReplacementNamed('/home');
                             emailController.clear();
                             passwordController.clear();
                           } catch (e) {
-                            setState(() {
-                              btnText = const Text("تسجيل دخول");
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text(
-                                      'حدث خطأ ما، الرجاء المحاولة لاحقاً')),
-                            );
+                            print(e);
+                            if (e ==
+                                'FirebaseError: Messaging: The notification permission was not granted and blocked instead. (messaging/permission-blocked).') {
+                              print('Firebase error');
+                            } else {
+                              setState(() {
+                                btnText = const Text("تسجيل دخول");
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(
+                                        'حدث خطأ ما، الرجاء المحاولة لاحقاً')),
+                              );
+                            }
                           }
                         },
                         style: ButtonStyle(
@@ -287,11 +293,15 @@ class _SignUpState extends State<SignUp> {
     );
 
     var fcmToken;
-    fcmToken = await FirebaseMessaging.instance.getToken();
-    if (kIsWeb) {
-      fcmToken = await FirebaseMessaging.instance.getToken(
-          vapidKey:
-              "BBT1WN2eSXbRVYatPTKRbUGfoGE4RTpSoMwNqzkhaGMtQXjiKGyvTkRmmsLy54GWwlsVqun6H04eMrQArVSoSnI");
+    try {
+      fcmToken = await FirebaseMessaging.instance.getToken();
+      if (kIsWeb) {
+        fcmToken = await FirebaseMessaging.instance.getToken(
+            vapidKey:
+                "BBT1WN2eSXbRVYatPTKRbUGfoGE4RTpSoMwNqzkhaGMtQXjiKGyvTkRmmsLy54GWwlsVqun6H04eMrQArVSoSnI");
+      }
+    } catch (e) {
+      fcmToken = 'null';
     }
 
     final body = <String, dynamic>{
