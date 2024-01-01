@@ -32,7 +32,11 @@ class _AllConversationsState extends State<AllConversations>
     super.initState();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(
+<<<<<<<<< Temporary merge branch 1
+          'لا تزال خاسية المحادثات في المرحلة التجريبية، نعتذر لوجود بعض المشاكل'),
+=========
           'لا تزال خاصية المحادثات في المرحلة التجريبية، نعتذر لوجود بعض المشاكل'),
+>>>>>>>>> Temporary merge branch 2
     ));
     fetchMessages();
     realtime();
