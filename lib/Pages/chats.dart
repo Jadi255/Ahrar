@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chat_bubbles/bubbles/bubble_special_one.dart';
 import 'package:chat_bubbles/chat_bubbles.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -31,6 +30,10 @@ class _AllConversationsState extends State<AllConversations>
   @override
   void initState() {
     super.initState();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(
+          'لا تزال خاسية المحادثات في المرحلة التجريبية، نعتذر لوجود بعض المشاكل'),
+    ));
     fetchMessages();
     realtime();
   }
@@ -45,22 +48,26 @@ class _AllConversationsState extends State<AllConversations>
       });
     } else if (kIsWeb) {
       Timer.periodic(Duration(seconds: 5), (timer) async {
-        final cacheManager = CacheManager();
-        final messages = await cacheManager.getMessages();
-        List ids = [];
-        for (var message in messages) {
-          ids.add(message.id);
-        }
-        final user = Provider.of<User>(context, listen: false);
+        try {
+          final cacheManager = CacheManager();
+          final messages = await cacheManager.getMessages();
+          List ids = [];
+          for (var message in messages) {
+            ids.add(message.id);
+          }
+          final user = Provider.of<User>(context, listen: false);
 
-        var newest = await user.pb
-            .collection('messages')
-            .getList(page: 1, perPage: 1, sort: '-created');
-        var response = newest.items[0];
-        var id = response.toJson()['id'];
-        if (!ids.contains(id)) {
-          isLoading = true;
-          await fetchMessages();
+          var newest = await user.pb
+              .collection('messages')
+              .getList(page: 1, perPage: 1, sort: '-created');
+          var response = newest.items[0];
+          var id = response.toJson()['id'];
+          if (!ids.contains(id)) {
+            isLoading = true;
+            await fetchMessages();
+          }
+        } catch (e) {
+          print(e);
         }
       });
     }
@@ -82,7 +89,6 @@ class _AllConversationsState extends State<AllConversations>
 
   Future fetchMessages() async {
     conversations.clear();
-
     setState(() {
       isLoading = true;
     });
@@ -173,7 +179,7 @@ class _AllConversationsState extends State<AllConversations>
               ),
               title: Text(chatPartner['full_name'],
                   style: defaultText, textScaler: TextScaler.linear(0.90)),
-              subtitle: Text(lastText!, textScaler: TextScaler.linear(0.80)),
+              //subtitle: Text(lastText!, textScaler: TextScaler.linear(0.80)),
               trailing: Text(
                 msgTime,
                 textAlign: TextAlign.center,
@@ -326,54 +332,58 @@ class _ConversationViewState extends State<ConversationView> {
     } else if (kIsWeb) {
       final fetcher = Fetcher(pb: user.pb);
       Timer.periodic(Duration(seconds: 5), (timer) async {
-        final newMessages = await fetcher.fetchMessages(user.id);
-        for (var item in newMessages) {
-          var message = item.toJson();
-          if (!messages.contains(message['id'])) {
-            messages.add(message['id']);
-            bool isSender = (message['from'] == user.id);
-            var bubble;
-            var msgTime = DateTime.parse(message['created']);
-            var local = msgTime.toLocal();
-            var time =
-                '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
-            if (!isSender) {
-              bubble = Column(
-                children: [
-                  BubbleSpecialOne(
-                    text: message['text'],
-                    isSender: false,
-                    tail: false,
-                    color: Colors.white,
-                    textStyle: TextStyle(color: blackColor, fontSize: 14),
-                  ),
-                  BubbleSpecialOne(
-                    text: time,
-                    isSender: false,
-                    tail: false,
-                    color: Colors.transparent,
-                    textStyle:
-                        TextStyle(color: Colors.grey.shade500, fontSize: 10),
-                  ),
-                ],
+        try {
+          final newMessages = await fetcher.fetchMessages(user.id);
+          for (var item in newMessages) {
+            var message = item.toJson();
+            if (!messages.contains(message['id'])) {
+              messages.add(message['id']);
+              bool isSender = (message['from'] == user.id);
+              var bubble;
+              var msgTime = DateTime.parse(message['created']);
+              var local = msgTime.toLocal();
+              var time =
+                  '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+              if (!isSender) {
+                bubble = Column(
+                  children: [
+                    BubbleSpecialOne(
+                      text: message['text'],
+                      isSender: false,
+                      tail: false,
+                      color: Colors.white,
+                      textStyle: TextStyle(color: blackColor, fontSize: 14),
+                    ),
+                    BubbleSpecialOne(
+                      text: time,
+                      isSender: false,
+                      tail: false,
+                      color: Colors.transparent,
+                      textStyle:
+                          TextStyle(color: Colors.grey.shade500, fontSize: 10),
+                    ),
+                  ],
+                );
+              }
+              bubbles.add(bubble);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _scrollController
+                    .jumpTo(_scrollController.position.maxScrollExtent);
+              });
+              setState(() {});
+              final cacheMessage = Message(
+                message['id'],
+                message['to'],
+                message['from'],
+                message['text'],
+                DateTime.parse(message['created']),
+                DateTime.parse(message['updated']),
               );
+              await CacheManager().cacheMessage(cacheMessage);
             }
-            bubbles.add(bubble);
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _scrollController
-                  .jumpTo(_scrollController.position.maxScrollExtent);
-            });
-            setState(() {});
-            final cacheMessage = Message(
-              message['id'],
-              message['to'],
-              message['from'],
-              message['text'],
-              DateTime.parse(message['created']),
-              DateTime.parse(message['updated']),
-            );
-            await CacheManager().cacheMessage(cacheMessage);
           }
+        } catch (e) {
+          print('No new messages');
         }
       });
     }
@@ -485,6 +495,7 @@ class _ConversationViewState extends State<ConversationView> {
     if (controller.text == "") {
       return;
     }
+    var messageText = controller.text;
     var date = DateTime.now();
     var local = date.toLocal();
     var time =
@@ -498,7 +509,7 @@ class _ConversationViewState extends State<ConversationView> {
           isSender: true,
           tail: false,
           color: greenColor,
-          textStyle: TextStyle(color: Colors.white, fontSize: 16),
+          textStyle: TextStyle(color: Colors.white, fontSize: 14),
         ),
         BubbleSpecialOne(
           text: time,
@@ -509,20 +520,20 @@ class _ConversationViewState extends State<ConversationView> {
         ),
       ],
     );
-    controller.text = '';
     bubbles.add(bubble);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
     });
 
-    setState(() {});
+    setState(() {
+      controller.text = '';
+    });
 
     final user = Provider.of<User>(context, listen: false);
     final writer = Writer(pb: user.pb);
 
     try {
-      final request =
-          await writer.sendMessage(controller.text, user.id, widget.id);
+      final request = await writer.sendMessage(messageText, user.id, widget.id);
       final message = Message(
         request['id'],
         request['to'],

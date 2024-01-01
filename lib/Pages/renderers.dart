@@ -1873,8 +1873,13 @@ class _ShowFullPostState extends State<ShowFullPost> {
       final fetcher = Fetcher(pb: user.pb);
       var record = await fetcher.getPost(widget.post);
       var post = record.toJson();
+      var poster = await fetcher.getUser(post['by']);
+      var posterData = poster.toJson();
+      final avatarUrl =
+          user.pb.getFileUrl(poster, posterData['avatar']).toString();
+      var avatar = CachedNetworkImageProvider(avatarUrl);
       var postWidget = await renderer.createPostWidget(
-          post, user.fullName, user.avatar!, user);
+          post, posterData['full_name'], avatar, user);
       var container = pagePadding(
         postWidget,
       );
