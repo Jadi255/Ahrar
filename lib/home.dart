@@ -30,7 +30,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
   int _currentIndex = 0;
   final _pageController = PageController();
   var initConnectivityState;
-  int buildNo = 291223;
+  int buildNo = 311223;
   bool get wantKeepAlive => true;
 
   final List<Widget> _children = [
@@ -51,8 +51,9 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
         if (user.fullName == "") {
           context.go('/');
         }
+      } else {
+        await checkUpdates();
       }
-      await checkUpdates();
       await getAlerts();
     });
     getInitConnectivity();
@@ -72,38 +73,41 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
           barrierDismissible: false,
           context: context,
           builder: (context) {
-            return AlertDialog(
-                backgroundColor: Colors.white,
-                surfaceTintColor: Colors.black,
-                iconColor: Colors.black,
-                title: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      alert['title'],
-                      textScaler: TextScaler.linear(0.75),
-                    ),
-                  ],
-                ),
-                content: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [Text(alertText)],
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: AlertDialog(
+                  backgroundColor: Colors.white,
+                  surfaceTintColor: Colors.black,
+                  iconColor: Colors.black,
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        alert['title'],
+                        textScaler: TextScaler.linear(0.75),
+                      ),
+                    ],
+                  ),
+                  content: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [Text(alertText)],
+                      ),
                     ),
                   ),
-                ),
-                actions: [
-                  TextButton(
-                      onPressed: () {
-                        user.pb
-                            .collection('alerts')
-                            .update(id, body: {"seen": true});
-                        Navigator.of(context).pop();
-                      },
-                      child: Text('تم'),
-                      style: TextButtonStyle)
-                ]);
+                  actions: [
+                    TextButton(
+                        onPressed: () {
+                          user.pb
+                              .collection('alerts')
+                              .update(id, body: {"seen": true});
+                          Navigator.of(context).pop();
+                        },
+                        child: Text('تم'),
+                        style: TextButtonStyle)
+                  ]),
+            );
           });
     }
   }
@@ -172,7 +176,11 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
       Timer.periodic(
         Duration(seconds: 10),
         (timer) async {
-          getMessages();
+          try {
+            getMessages();
+          } catch (e) {
+            print(e);
+          }
         },
       );
     }
