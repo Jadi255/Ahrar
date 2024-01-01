@@ -119,7 +119,6 @@ class Fetcher {
       String formattedStartDate =
           DateFormat('yyyy-MM-dd HH:mm:ss').format(startDate);
       pbFilter += 'created >= "$formattedStartDate"';
-      print(pbFilter);
       final request = await pb.collection('circle_posts').getList(
           page: page, perPage: perPage, filter: pbFilter, sort: pbSort);
       var response = request.toJson();
@@ -280,7 +279,6 @@ class Fetcher {
           filter: 'seen = false && to.id = "$user"',
         );
 
-    print("alerts: $alerts");
     return alerts;
   }
 }

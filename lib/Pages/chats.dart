@@ -74,9 +74,9 @@ class _AllConversationsState extends State<AllConversations>
     var hour = date.hour;
     var minutes = date.minute;
     if (aDate == today) {
-      return '$hour:$minutes';
+      return '${hour.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
     } else {
-      return '${aDate.day}/${aDate.month}\n$hour:$minutes';
+      return '${aDate.day}/${aDate.month}\n${hour.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
     }
   }
 
@@ -291,7 +291,7 @@ class _ConversationViewState extends State<ConversationView> {
                   isSender: false,
                   tail: false,
                   color: Colors.white,
-                  textStyle: TextStyle(color: blackColor, fontSize: 16),
+                  textStyle: TextStyle(color: blackColor, fontSize: 14),
                 ),
                 BubbleSpecialOne(
                   text: time,
@@ -345,7 +345,7 @@ class _ConversationViewState extends State<ConversationView> {
                     isSender: false,
                     tail: false,
                     color: Colors.white,
-                    textStyle: TextStyle(color: blackColor, fontSize: 16),
+                    textStyle: TextStyle(color: blackColor, fontSize: 14),
                   ),
                   BubbleSpecialOne(
                     text: time,
@@ -405,17 +405,20 @@ class _ConversationViewState extends State<ConversationView> {
       if (lastDate == null || !isSameDay(lastDate, message.created)) {
         if (message.from == widget.id || message.to == widget.id) {
           lastDate = message.created;
-          final dateChip = Center(
-            child: Card(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: Text(
-                  formatDate(lastDate!),
+          final dateChip = Padding(
+            padding: const EdgeInsets.only(bottom: 15.0),
+            child: Center(
+              child: Card(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  child: Text(
+                    formatDate(lastDate!),
+                  ),
                 ),
+                color: Color.fromARGB(255, 205, 229, 230),
+                surfaceTintColor: Color.fromARGB(255, 205, 229, 230),
               ),
-              color: Color.fromARGB(255, 205, 229, 230),
-              surfaceTintColor: Color.fromARGB(255, 205, 229, 230),
             ),
           );
           bubbles.add(dateChip);
@@ -426,8 +429,6 @@ class _ConversationViewState extends State<ConversationView> {
       bool isSender = (message.from == user.id);
       var bubble;
       var local = message.created.toLocal();
-      var to = message.to;
-      var from = message.from;
       var time =
           '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
       if (isSender) {
@@ -439,7 +440,7 @@ class _ConversationViewState extends State<ConversationView> {
                 isSender: true,
                 tail: false,
                 color: greenColor,
-                textStyle: TextStyle(color: Colors.white, fontSize: 16),
+                textStyle: TextStyle(color: Colors.white, fontSize: 14),
               ),
               BubbleSpecialOne(
                 text: time,
@@ -461,7 +462,7 @@ class _ConversationViewState extends State<ConversationView> {
                 isSender: false,
                 tail: false,
                 color: Colors.white,
-                textStyle: TextStyle(color: blackColor, fontSize: 16),
+                textStyle: TextStyle(color: blackColor, fontSize: 14),
               ),
               BubbleSpecialOne(
                 text: time,
@@ -481,6 +482,9 @@ class _ConversationViewState extends State<ConversationView> {
   }
 
   void sendMessage() async {
+    if (controller.text == "") {
+      return;
+    }
     var date = DateTime.now();
     var local = date.toLocal();
     var time =
@@ -505,21 +509,6 @@ class _ConversationViewState extends State<ConversationView> {
         ),
       ],
     );
-    final user = Provider.of<User>(context, listen: false);
-    final writer = Writer(pb: user.pb);
-
-    final request =
-        await writer.sendMessage(controller.text, user.id, widget.id);
-    final message = Message(
-      request['id'],
-      request['to'],
-      request['from'],
-      request['text'],
-      DateTime.parse(request['created']),
-      DateTime.parse(request['updated']),
-    );
-    await cacheManager.cacheMessage(message);
-
     controller.text = '';
     bubbles.add(bubble);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -527,7 +516,28 @@ class _ConversationViewState extends State<ConversationView> {
     });
 
     setState(() {});
-    await writer.messageNotifier(request['to'], request['from']);
+
+    final user = Provider.of<User>(context, listen: false);
+    final writer = Writer(pb: user.pb);
+
+    try {
+      final request =
+          await writer.sendMessage(controller.text, user.id, widget.id);
+      final message = Message(
+        request['id'],
+        request['to'],
+        request['from'],
+        request['text'],
+        DateTime.parse(request['created']),
+        DateTime.parse(request['updated']),
+      );
+      await cacheManager.cacheMessage(message);
+
+      await writer.messageNotifier(request['to'], request['from']);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ ما. الرجاء المحاولة في وقت لاحق')));
+    }
   }
 
   @override

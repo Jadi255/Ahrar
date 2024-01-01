@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:qalam/Pages/cache.dart';
 import 'package:qalam/Pages/chats.dart';
@@ -24,11 +26,12 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
   int _currentIndex = 0;
   final _pageController = PageController();
   var initConnectivityState;
   int buildNo = 291223;
+  bool get wantKeepAlive => true;
 
   final List<Widget> _children = [
     const ViewPosts(),
@@ -43,6 +46,12 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     Future.delayed(Duration.zero, () async {
+      if (kIsWeb) {
+        final user = Provider.of<User>(context, listen: false);
+        if (user.fullName == "") {
+          context.go('/');
+        }
+      }
       await checkUpdates();
       await getAlerts();
     });
@@ -55,7 +64,6 @@ class _HomeState extends State<Home> {
     final user = Provider.of<User>(context, listen: false);
     var fetcher = Fetcher(pb: user.pb);
     var request = await fetcher.getAlerts(user.id);
-    print(request);
     for (var i = 0; i < request.length; i++) {
       var alert = await request[i]!.toJson();
       String id = alert['id'];
@@ -101,6 +109,7 @@ class _HomeState extends State<Home> {
   }
 
   void getMessages() async {
+    CacheManager().clearMessages();
     final user = Provider.of<User>(context, listen: false);
     final fetcher = Fetcher(pb: user.pb);
     final messages = await fetcher.fetchMessages(user.id);
@@ -259,6 +268,7 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     var user = Provider.of<User>(context);
     authRefresh();
     connectivityStream().listen((event) {

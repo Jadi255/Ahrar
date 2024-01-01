@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:qalam/Pages/fetchers.dart';
 
@@ -40,7 +41,7 @@ class _MyProfileState extends State<MyProfile> {
                   icon: Icon(Icons.logout_outlined),
                   onPressed: () async {
                     await authService.logout(context, user.id);
-                    Navigator.of(context).pushReplacementNamed('/login');
+                    context.go('/login');
                   },
                 ),
                 Visibility(

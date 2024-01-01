@@ -183,7 +183,6 @@ class Writer {
     var postData = postRecord.toJson();
     toNotify.add(postData['by']);
     toNotify = toNotify.toSet().toList();
-    print(toNotify);
 
     for (var user in toNotify) {
       final body = <String, dynamic>{

@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:pocketbase/pocketbase.dart';
 import 'package:provider/provider.dart';
+import 'package:qalam/Pages/external_posts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'package:qalam/Pages/fetchers.dart';
 import 'package:qalam/auth.dart';
 import 'package:qalam/home.dart';
 import 'package:qalam/Pages/cache.dart';
+import 'package:go_router/go_router.dart';
 
 import 'styles.dart';
 import 'user_data.dart';
@@ -56,73 +58,55 @@ These changes encapsulate the authentication logic in AuthService, represent a u
  */
 
 class MyApp extends StatelessWidget {
+  var begin = Offset(1.0, 0.0);
+  var end = Offset.zero;
+  var curve = Curves.ease;
+
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-    return MaterialApp(
+    final _router = GoRouter(routes: [
+      GoRoute(
+        path: '/',
+        pageBuilder: (context, state) => MaterialPage<void>(
+          key: state.pageKey,
+          child: SplashScreen(authService: authService),
+        ),
+      ),
+      GoRoute(
+        path: '/login',
+        pageBuilder: (context, state) {
+          return MaterialPage<void>(
+            key: state.pageKey,
+            child: Login(authService: authService),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/home',
+        pageBuilder: (context, state) {
+          return MaterialPage<void>(
+            key: state.pageKey,
+            child: Home(authService: authService),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/showPost/:id',
+        pageBuilder: (context, state) {
+          final id = state.pathParameters['id'];
+          return MaterialPage<void>(
+            key: state.pageKey,
+            child: ExternalLink(id: id!),
+          );
+        },
+      ),
+    ], initialLocation: "/");
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'قلم',
+      title: 'تطبيق قلم',
       theme: appTheme,
-      initialRoute: '/splash',
-      onGenerateRoute: (settings) {
-        // Get the URI from the route name
-        final uri = Uri.parse(settings.name!);
-        // Check the path of the URI
-        switch (uri.path) {
-          case '/splash':
-            return MaterialPageRoute(
-                builder: (context) => SplashScreen(authService: authService));
-          case '/login':
-            return MaterialPageRoute(
-                builder: (context) => Login(authService: authService));
-          case '/home':
-            return MaterialPageRoute(
-                builder: (context) => Home(authService: authService));
-          case '/signUp':
-            return MaterialPageRoute(
-                builder: (context) => SignUp(
-                      pb: authService.pb,
-                    )); // Replace with your SignUp widget
-          case '/friendRequests':
-            return MaterialPageRoute(
-                builder: (context) =>
-                    Placeholder()); // Replace with your FriendRequests widget
-          case '/showComments':
-            final id = uri.queryParameters['id'];
-            return MaterialPageRoute(
-                builder: (context) => Placeholder(
-                      child: Text('id'),
-                    )); // Replace with your ShowComments widget
-          case '/discoverTopics':
-            final id = uri.queryParameters['id'];
-            return MaterialPageRoute(
-                builder: (context) => Placeholder(
-                      child: Text('id'),
-                    )); // Replace with your DiscoverTopics widget
-          case '/viewProfile':
-            final id = uri.queryParameters['id'];
-            return MaterialPageRoute(
-                builder: (context) => Placeholder(
-                      child: Text('id'),
-                    )); // Replace with your ViewProfile widget
-          case '/showCommentsExtern':
-            final id = uri.queryParameters['id'];
-            return MaterialPageRoute(
-                builder: (context) => Placeholder(
-                      child: Text('id'),
-                    )); // Replace with your ShowCommentsExtern widget
-          case '/viewProfileExtern':
-            final id = uri.queryParameters['id'];
-            return MaterialPageRoute(
-                builder: (context) => Placeholder(
-                      child: Text('id'),
-                    )); // Replace with your ViewProfileExtern widget
-          default:
-            return MaterialPageRoute(
-                builder: (context) =>
-                    UnknownPage()); // Replace with your UnknownPage widget
-        }
-      },
+      routerConfig: _router,
     );
   }
 }
@@ -158,27 +142,7 @@ class _SplashScreenState extends State<SplashScreen> {
       bool? isVerified = await prefs.getBool('isVerified');
       var avatarUrl = prefs.getString('user_avatarUrl');
       if (id == null || fullName == null || avatarUrl == null) {
-        Navigator.pushReplacement(
-            context,
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  Login(authService: authService),
-              transitionsBuilder:
-                  (context, animation, secondaryAnimation, child) {
-                var begin = Offset(1.0, 0.0);
-                var end = Offset.zero;
-                var curve = Curves.ease;
-
-                var tween = Tween(begin: begin, end: end)
-                    .chain(CurveTween(curve: curve));
-
-                return SlideTransition(
-                  position: animation.drive(tween),
-                  child: child,
-                );
-              },
-            ));
-
+        context.go('/login');
         return;
       }
       final avatar = CachedNetworkImageProvider(avatarUrl);
@@ -188,47 +152,9 @@ class _SplashScreenState extends State<SplashScreen> {
       user.isVerified = isVerified ?? false;
       user.avatar = avatar;
       user.realTime();
-      Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                Home(authService: authService),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-              var begin = Offset(1.0, 0.0);
-              var end = Offset.zero;
-              var curve = Curves.ease;
-
-              var tween =
-                  Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-
-              return SlideTransition(
-                position: animation.drive(tween),
-                child: child,
-              );
-            },
-          ));
+      context.go('/home');
     } else {
-      Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                Login(authService: authService),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-              var begin = Offset(1.0, 0.0);
-              var end = Offset.zero;
-              var curve = Curves.ease;
-
-              var tween =
-                  Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-
-              return SlideTransition(
-                position: animation.drive(tween),
-                child: child,
-              );
-            },
-          ));
+      context.go('/login');
     }
   }
 
