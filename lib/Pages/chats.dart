@@ -30,10 +30,6 @@ class _AllConversationsState extends State<AllConversations>
   @override
   void initState() {
     super.initState();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(
-          'لا تزال خاصية المحادثات في المرحلة التجريبية، نعتذر لوجود بعض المشاكل'),
-    ));
     fetchMessages();
     realtime();
   }

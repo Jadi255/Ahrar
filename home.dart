@@ -19,8 +19,7 @@ import 'package:qalam/user_data.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Home extends StatefulWidget {
-  final AuthService authService;
-  Home({super.key, required this.authService});
+  Home({super.key});
 
   @override
   State<Home> createState() => _HomeState();
@@ -45,6 +44,43 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
   @override
   void initState() {
     super.initState();
+    connectivityStream().listen((event) {
+      if (event == ConnectivityResult.none) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  Icons.wifi_off,
+                  color: Colors.white,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                  child: Text('أنت غير متصل بالإنترنت'),
+                ),
+              ],
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  Icons.wifi,
+                  color: Colors.white,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                  child: Text('عاد الإتصال'),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    });
     Future.delayed(Duration.zero, () async {
       if (kIsWeb) {
         final user = Provider.of<User>(context, listen: false);
@@ -56,9 +92,13 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
       }
       await getAlerts();
     });
-    getInitConnectivity();
-    messagesSubscriber();
-    getMessages();
+    try {
+      getInitConnectivity();
+      messagesSubscriber();
+      getMessages();
+    } catch (e) {
+      print(e);
+    }
   }
 
   Future getAlerts() async {
@@ -279,44 +319,6 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
     super.build(context);
     var user = Provider.of<User>(context);
     authRefresh();
-    connectivityStream().listen((event) {
-      if (event == ConnectivityResult.none) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  Icons.wifi_off,
-                  color: Colors.white,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                  child: Text('أنت غير متصل بالإنترنت'),
-                ),
-              ],
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  Icons.wifi,
-                  color: Colors.white,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                  child: Text('عاد الإتصال'),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-    });
-
     user.realTime();
     return PopScope(
       canPop: false,
