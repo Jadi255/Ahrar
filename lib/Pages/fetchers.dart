@@ -75,6 +75,7 @@ class Fetcher {
     final request = await pb.collection('circle_posts').getList(
           page: page,
           perPage: perPage,
+          expand: "by",
           filter: 'is_public = true',
           sort: '-created',
         );
@@ -269,8 +270,11 @@ class Fetcher {
   Future fetchMessages(user) async {
     final request = await pb.collection('messages').getFullList(
           sort: '-created',
+          expand: 'from, to',
           filter: 'to.id = "$user" || from.id = "$user"',
         );
+
+    //TODO Expansion
     return request;
   }
 

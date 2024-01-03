@@ -109,13 +109,14 @@ class Renderer extends ChangeNotifier {
 
       for (var postData in postsData) {
         if (mode != 'myPosts') {
-          var getUserRecord =
-              await pb.collection('users').getOne(postData['by']);
-          var userMap = getUserRecord.toJson();
-          fullName = userMap['full_name'];
-          var avatarUrl =
-              pb.getFileUrl(getUserRecord, userMap['avatar']).toString();
+          var poster = postData['expand']['by'];
+          var posterRecord = RecordModel.fromJson(poster);
+          print(poster.keys);
+          fullName = poster['full_name'];
+          final avatarUrl =
+              user.pb.getFileUrl(posterRecord, poster['avatar']).toString();
           avatar = CachedNetworkImageProvider(avatarUrl);
+          print(avatarUrl);
         }
         if (mode == 'filter') {
           postsData.sort((a, b) {
