@@ -328,7 +328,7 @@ class _UserPostsState extends State<UserPosts> {
       });
       Renderer renderer = Provider.of<Renderer>(context, listen: false);
       renderer.renderPosts(
-          context, user, _currentPage, 5, 'profilePosts', widget.id, false);
+          context, user, _currentPage, 7, 'profilePosts', widget.id, false);
       _currentPage++;
     }
   }
