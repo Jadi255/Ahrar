@@ -1,5 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
@@ -167,7 +168,7 @@ class _LoginState extends State<Login> {
                             await authService.authenticate(
                                 email, password, context);
                             btnText = Icon(Icons.check);
-                            Navigator.of(context).pushReplacementNamed('/home');
+                            context.go('/home');
                             emailController.clear();
                             passwordController.clear();
                           } catch (e) {
@@ -280,7 +281,6 @@ class _SignUpState extends State<SignUp> {
     }
 
     var avatar = await rootBundle.load('assets/placeholder.jpg');
-    print(avatar);
     var avatarBytes = avatar.buffer.asUint8List();
     var filename = 'avatar.jpg'; // Replace with your desired filename format
 
@@ -323,7 +323,6 @@ class _SignUpState extends State<SignUp> {
         body["fname"] == "" ||
         body["lname"] == "" ||
         body["birthday"] == "") {
-      print(body);
       setState(() {
         btnText = const Text("متابعة");
 
@@ -358,7 +357,6 @@ class _SignUpState extends State<SignUp> {
     setState(() {
       btnText = const Text("متابعة");
     });
-    print(body);
 
     try {
       var request = await widget.pb.collection('users').create(
@@ -367,12 +365,11 @@ class _SignUpState extends State<SignUp> {
       );
       var response = request.toJson();
       var id = response['id'];
-      print(id);
       AuthService authService = AuthService(widget.pb);
       await authService.authenticate(
           emailController.text, passwordController.text, context);
       btnText = Icon(Icons.check);
-      Navigator.of(context).pushReplacementNamed('/home');
+      context.go('/home');
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(e.toString())));
@@ -467,7 +464,7 @@ class _SignUpState extends State<SignUp> {
                 child: SizedBox(
                   child: TextField(
                     decoration: textfieldDecoration(
-                        "إسم العائلة"), // use textfieldDecoration
+                        "اسم العائلة"), // use textfieldDecoration
                     controller: lnameController,
                   ),
                 ),

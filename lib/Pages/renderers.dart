@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:share_plus/share_plus.dart';
 import 'package:animated_icon_button/animated_icon_button.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -68,7 +69,11 @@ class Renderer extends ChangeNotifier {
     var postsData;
     String fullName = user.fullName;
     String id = user.id;
+    if (user.avatar == null) {
+      user = Provider.of<User>(context, listen: false);
+    }
     ImageProvider avatar = user.avatar!;
+    print("avatar: $avatar");
     final pb = user.pb;
     try {
       switch (mode) {
@@ -597,7 +602,7 @@ class Renderer extends ChangeNotifier {
               ),
               Padding(
                 padding: const EdgeInsets.only(top: 5.0),
-                child: createPostActions(post, context),
+                child: createPostActions(post, fullName, context),
               )
             ],
           ),
@@ -606,7 +611,7 @@ class Renderer extends ChangeNotifier {
     });
   }
 
-  Widget createPostActions(post, context) {
+  Widget createPostActions(post, fullName, context) {
     final user = Provider.of<User>(context, listen: false);
     final writer = Writer(pb: pb);
 
@@ -670,6 +675,23 @@ class Renderer extends ChangeNotifier {
                       ),
                     ),
                   ),
+                  if (post['is_public'])
+                    IconButton(
+                      onPressed: () {
+                        if (post['post'] == "") {
+                          if (post['pictures'].isNotEmpty) {
+                            String postString =
+                                "منشور بقلم: ${fullName}\n\nشاهد هذا المنشور على منصة قلم:\nhttps://qalam.up.railway.app/#/showPost/${post['id']}";
+                            Share.share(postString);
+                          }
+                        } else {
+                          String postString =
+                              "${post['post']}\n\nبقلم: ${fullName}\n\nشاهد هذا المنشور على منصة قلم:\nhttps://qalam.up.railway.app/#/showPost/${post['id']}";
+                          Share.share(postString);
+                        }
+                      },
+                      icon: Icon(Icons.share),
+                    ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1049,9 +1071,7 @@ class Renderer extends ChangeNotifier {
                                     },
                                   );
                                 }
-                                if (hashTagRegExp.hasMatch(value)) {
-                                  print('topic: $value');
-                                }
+                                if (hashTagRegExp.hasMatch(value)) {}
                               },
                               controller: controller,
                               decoration: InputDecoration(
@@ -1176,9 +1196,7 @@ class Renderer extends ChangeNotifier {
                                   },
                                 );
                               }
-                              if (hashTagRegExp.hasMatch(value)) {
-                                print('topic: $value');
-                              }
+                              if (hashTagRegExp.hasMatch(value)) {}
                             },
                             controller: controller,
                             decoration: InputDecoration(
@@ -1386,9 +1404,7 @@ class _ShowCommentsState extends State<ShowComments> {
                               },
                             );
                           }
-                          if (hashTagRegExp.hasMatch(value)) {
-                            print('topic: $value');
-                          }
+                          if (hashTagRegExp.hasMatch(value)) {}
                         },
                         controller: controller,
                         decoration: InputDecoration(
@@ -1846,8 +1862,6 @@ class _ShowFullPostState extends State<ShowFullPost> {
   @override
   void initState() {
     super.initState();
-
-    print("Post widget argument: ${widget.post}");
   }
 
   @override

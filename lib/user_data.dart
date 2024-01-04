@@ -61,7 +61,6 @@ class AuthService {
           authMap['id'],
           body: {"fcm_token": fcmToken},
         );
-        print(request);
       }
       // Create a User instance
       User user = User(
@@ -127,9 +126,7 @@ class AuthService {
 
     final record =
         await pb.collection('users').authWithPassword(email!, password!);
-    print(record.record!.id);
     var userData = await record.record!.toJson();
-    print(userData['id']);
     var lastToken = userData['fcm_token'];
 
     if (lastToken == "" || lastToken != fcmToken) {
@@ -137,7 +134,6 @@ class AuthService {
         userData['id'],
         body: {"fcm_token": fcmToken},
       );
-      print(request);
     }
   }
 }
