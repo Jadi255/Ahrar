@@ -109,13 +109,14 @@ class Renderer extends ChangeNotifier {
 
       for (var postData in postsData) {
         if (mode != 'myPosts') {
-          var getUserRecord =
-              await pb.collection('users').getOne(postData['by']);
-          var userMap = getUserRecord.toJson();
-          fullName = userMap['full_name'];
-          var avatarUrl =
-              pb.getFileUrl(getUserRecord, userMap['avatar']).toString();
+          var poster = postData['expand']['by'];
+          var posterRecord = RecordModel.fromJson(poster);
+          print(poster.keys);
+          fullName = poster['full_name'];
+          final avatarUrl =
+              user.pb.getFileUrl(posterRecord, poster['avatar']).toString();
           avatar = CachedNetworkImageProvider(avatarUrl);
+          print(avatarUrl);
         }
         if (mode == 'filter') {
           postsData.sort((a, b) {
@@ -1873,8 +1874,13 @@ class _ShowFullPostState extends State<ShowFullPost> {
       final fetcher = Fetcher(pb: user.pb);
       var record = await fetcher.getPost(widget.post);
       var post = record.toJson();
+      var poster = await fetcher.getUser(post['by']);
+      var posterData = poster.toJson();
+      final avatarUrl =
+          user.pb.getFileUrl(poster, posterData['avatar']).toString();
+      var avatar = CachedNetworkImageProvider(avatarUrl);
       var postWidget = await renderer.createPostWidget(
-          post, user.fullName, user.avatar!, user);
+          post, posterData['full_name'], avatar, user);
       var container = pagePadding(
         postWidget,
       );

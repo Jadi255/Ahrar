@@ -131,7 +131,7 @@ class _PublicPostsState extends State<PublicPosts>
   Future loadPosts() async {
     Renderer renderer = Provider.of<Renderer>(context, listen: false);
     renderer.renderPosts(
-        context, widget.user, _currentPage, 5, 'publicAll', 'id', refresh);
+        context, widget.user, _currentPage, 7, 'publicAll', 'id', refresh);
     if (refresh) {
       refresh = false;
     }
@@ -265,7 +265,7 @@ class _FriendsPostsState extends State<FriendsPosts>
   Future loadPosts() async {
     Renderer renderer = Provider.of<Renderer>(context, listen: false);
     renderer.renderPosts(
-        context, widget.user, _currentPage, 5, 'friends', 'id', refresh);
+        context, widget.user, _currentPage, 7, 'friends', 'id', refresh);
     if (refresh) {
       refresh = false;
     }
@@ -397,7 +397,7 @@ class _FilterPostsState extends State<FilterPosts> {
   Future loadPosts() async {
     Renderer renderer = Provider.of<Renderer>(context, listen: false);
     renderer.renderPosts(
-        context, widget.user, _currentPage, 5, 'filter', timeRange, refresh);
+        context, widget.user, _currentPage, 7, 'filter', timeRange, refresh);
     if (refresh) {
       refresh = false;
     }

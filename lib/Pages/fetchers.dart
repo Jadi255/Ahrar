@@ -29,6 +29,7 @@ class Fetcher {
     final request = await pb.collection('circle_posts').getList(
         page: page,
         perPage: perPage,
+        expand: "by",
         filter: 'by.id = "$id"',
         sort: '-created');
 
@@ -41,6 +42,7 @@ class Fetcher {
     final request = await pb.collection('circle_posts').getList(
         page: page,
         perPage: perPage,
+        expand: "by",
         filter: 'topic.id ?= "$topic"',
         sort: '-created');
     var response = request.toJson();
@@ -75,12 +77,13 @@ class Fetcher {
     final request = await pb.collection('circle_posts').getList(
           page: page,
           perPage: perPage,
-          filter: 'is_public = true',
+          expand: "by, comments",
           sort: '-created',
         );
 
     var response = request.toJson();
     var posts = response['items'];
+    print(posts[0]);
     return posts;
   }
 
@@ -269,8 +272,11 @@ class Fetcher {
   Future fetchMessages(user) async {
     final request = await pb.collection('messages').getFullList(
           sort: '-created',
+          expand: 'from, to',
           filter: 'to.id = "$user" || from.id = "$user"',
         );
+
+    //TODO Expansion
     return request;
   }
 

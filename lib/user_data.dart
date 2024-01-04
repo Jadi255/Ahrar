@@ -101,9 +101,6 @@ class AuthService {
     pb.authStore.clear();
     final prefs = await SharedPreferences.getInstance();
     final cache = CacheManager();
-
-    pb.authStore.clear();
-    await storage.deleteAll();
     await cache.clearMessages();
     await prefs.clear();
   }

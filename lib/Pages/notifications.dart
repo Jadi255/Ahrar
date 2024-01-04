@@ -44,7 +44,11 @@ class _NotificationBellState extends State<NotificationBell> {
       Timer.periodic(
         Duration(seconds: 15),
         (timer) async {
-          await getNotifications();
+          try {
+            await getNotifications();
+          } catch (e) {
+            print(e);
+          }
         },
       );
     }

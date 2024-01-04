@@ -1,5 +1,9 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+<<<<<<< HEAD
+=======
+import 'package:flutter/widgets.dart';
+>>>>>>> refs/remotes/origin/main
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -12,6 +16,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:pocketbase/pocketbase.dart';
+import 'package:provider/provider.dart';
+import 'package:qalam/home.dart';
 import 'user_data.dart';
 import 'styles.dart';
 
@@ -193,22 +199,35 @@ class _LoginState extends State<Login> {
                                 MaterialStatePropertyAll(blackColor)),
                         child: btnText),
                   ),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context)
-                              .push(MaterialPageRoute(builder: (context) {
-                            return SignUp(
-                              pb: widget.authService.pb,
-                            );
-                          }));
-                        },
-                        style: TextButtonStyle,
-                        child: (const Text("إنشاء حساب")),
-                      ),
-                    ],
+                  Padding(
+                    padding: const EdgeInsets.only(top: 20.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context)
+                                .push(MaterialPageRoute(builder: (context) {
+                              return SignUp(
+                                pb: widget.authService.pb,
+                              );
+                            }));
+                          },
+                          style: TextButtonStyle,
+                          child: (const Text("إنشاء حساب")),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context)
+                                .push(MaterialPageRoute(builder: (context) {
+                              return PasswordReset(pb: authService.pb);
+                            }));
+                          },
+                          style: TextButtonStyle,
+                          child: (const Text("نسيت كلمة المرور")),
+                        ),
+                      ],
+                    ),
                   )
                 ],
               ),
@@ -596,6 +615,265 @@ class _SignUpState extends State<SignUp> {
                   style: ButtonStyle(
                       backgroundColor: MaterialStatePropertyAll(blackColor)),
                   child: btnText,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class PasswordReset extends StatefulWidget {
+  final PocketBase pb;
+  const PasswordReset({super.key, required this.pb});
+
+  @override
+  State<PasswordReset> createState() => _PasswordResetState();
+}
+
+class _PasswordResetState extends State<PasswordReset> {
+  TextEditingController emailController = TextEditingController();
+  TextEditingController tokenController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmController = TextEditingController();
+  bool passwordHidden = true;
+  bool confirmHidden = true;
+
+  bool isTokenVisible = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            coloredLogo,
+            Text(
+              'نسيت كلمة المرور',
+              style: defaultText,
+              textScaler: TextScaler.linear(0.85),
+            ),
+          ],
+        ),
+        automaticallyImplyLeading: true,
+      ),
+      body: SingleChildScrollView(
+        child: pagePadding(
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 15.0),
+                child: SafeArea(
+                  bottom: true,
+                  child: TextField(
+                    decoration: InputDecoration(
+                      label: Text('البريد الإلكتروني'),
+                      labelStyle: TextStyle(
+                        color: Colors.black, // Set your desired color
+                      ),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(30), // Circular/Oval border
+                      ),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    controller: emailController,
+                  ),
+                ),
+              ),
+              Visibility(
+                visible: !isTokenVisible,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10.0),
+                  child: TextButton(
+                    onPressed: () async {
+                      if (emailController.text == "") {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'الرجاء إدخال بريدك الإكتروني المربوط بالحساب '),
+                          ),
+                        );
+                        return;
+                      }
+                      await widget.pb
+                          .collection('users')
+                          .requestPasswordReset(emailController.text);
+                      setState(() {
+                        isTokenVisible = !isTokenVisible;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content:
+                              Text('تم إرسال رمز تحقق إلى بريدك الإلكتروني '),
+                        ),
+                      );
+                    },
+                    style: ButtonStyle(
+                        foregroundColor: MaterialStatePropertyAll(blackColor),
+                        overlayColor:
+                            MaterialStatePropertyAll(Colors.transparent),
+                        shadowColor:
+                            MaterialStatePropertyAll(Colors.transparent)),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(right: 15.0),
+                          child: Text('متابعة'),
+                        ),
+                        Icon(Icons.send),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10.0),
+                child: Visibility(
+                  visible: isTokenVisible,
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        child: SafeArea(
+                          bottom: true,
+                          child: TextField(
+                            decoration: textfieldDecoration("رمز التحقق"),
+                            controller: tokenController,
+                            obscureText: false,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10.0),
+                        child: SizedBox(
+                          child: TextField(
+                            decoration: InputDecoration(
+                              label: Text('كلمة السر'),
+                              labelStyle: TextStyle(
+                                color: Colors.black, // Set your desired color
+                              ),
+                              suffix: Transform.scale(
+                                scale: 0.85,
+                                child: IconButton(
+                                    onPressed: () {
+                                      passwordHidden = !passwordHidden;
+                                      setState(() {});
+                                    },
+                                    icon: Icon(Icons.visibility)),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 10),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                    30), // Circular/Oval border
+                              ),
+                            ), // use textfieldDecoration
+                            obscureText: passwordHidden,
+                            controller: passwordController,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            suffix: Transform.scale(
+                              scale: 0.85,
+                              child: IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      confirmHidden = !confirmHidden;
+                                    });
+                                  },
+                                  icon: Icon(Icons.visibility)),
+                            ),
+                            label: Text('تأكيد كلمة السر'),
+                            labelStyle: TextStyle(
+                              color: Colors.black, // Set your desired color
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 15, vertical: 10),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                  30), // Circular/Oval border
+                            ),
+                          ), // use textfieldDecoration
+                          obscureText: confirmHidden,
+                          controller: confirmController,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 15.0),
+                        child: TextButton(
+                          onPressed: () async {
+                            try {
+                              await widget.pb
+                                  .collection('users')
+                                  .confirmPasswordReset(
+                                    tokenController.text,
+                                    passwordController.text,
+                                    confirmController.text,
+                                  );
+                            } catch (e) {
+                              throw e;
+                            }
+                            final authService = Provider.of<AuthService>(
+                                context,
+                                listen: false);
+                            var user = await authService.authenticate(
+                                emailController.text,
+                                passwordController.text,
+                                context);
+                            print(user);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('تم تغيير كلمة السر بنجاح '),
+                              ),
+                            );
+
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (context) {
+                                  return Login(authService: authService);
+                                },
+                              ),
+                            );
+                          },
+                          style: ButtonStyle(
+                              foregroundColor:
+                                  MaterialStatePropertyAll(blackColor),
+                              overlayColor:
+                                  MaterialStatePropertyAll(Colors.transparent),
+                              shadowColor:
+                                  MaterialStatePropertyAll(Colors.transparent)),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(right: 15.0),
+                                child: Text('متابعة'),
+                              ),
+                              Icon(Icons.send),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

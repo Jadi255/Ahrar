@@ -160,7 +160,7 @@ class _DiscoverState extends State<Discover> {
   Future loadPosts() async {
     Renderer renderer = Provider.of<Renderer>(context, listen: false);
     renderer.renderPosts(
-        context, widget.user, _currentPage, 5, 'topic', widget.id, refresh);
+        context, widget.user, _currentPage, 7, 'topic', widget.id, refresh);
     if (refresh) {
       refresh = false;
     }
