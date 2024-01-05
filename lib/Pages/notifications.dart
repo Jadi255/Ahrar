@@ -165,6 +165,10 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
         case 'request':
           try {
             var sender = notification['expand']['linked_user'];
+            if (sender == null) {
+              user.pb.collection('notifications').delete(notification['id']);
+              break;
+            }
             var record = RecordModel.fromJson(sender);
             final avatarUrl =
                 user.pb.getFileUrl(record, sender['avatar']).toString();
@@ -281,12 +285,17 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
 
             widgets.add(notificationCard);
           } catch (e) {
-            print(e);
+            user.pb.collection('notifications').delete(notification['id']);
           }
           break;
         case 'alert':
           try {
             var sender = notification['expand']['linked_user'];
+            if (sender == null) {
+              user.pb.collection('notifications').delete(notification['id']);
+              break;
+            }
+
             var record = RecordModel.fromJson(sender);
             final avatarUrl =
                 user.pb.getFileUrl(record, sender['avatar']).toString();
@@ -346,16 +355,24 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
             widgets.add(notificationCard);
             fetcher.markAsRead(notification['id']);
           } catch (e) {
-            print(e);
+            user.pb.collection('notifications').delete(notification['id']);
           }
           break;
         case 'comment':
           var post =
               notification['expand']['linked_comment']['expand']['post']['id'];
-          print(post);
+          if (post == null) {
+            user.pb.collection('notifications').delete(notification['id']);
+            break;
+          }
           try {
             var sender =
                 notification['expand']['linked_comment']['expand']['by'];
+            if (sender == null) {
+              user.pb.collection('notifications').delete(notification['id']);
+              break;
+            }
+
             var record = RecordModel.fromJson(sender);
             final avatarUrl =
                 user.pb.getFileUrl(record, sender['avatar']).toString();
@@ -425,6 +442,11 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
         case 'message':
           try {
             var sender = notification['expand']['linked_user'];
+            if (sender == null) {
+              user.pb.collection('notifications').delete(notification['id']);
+              break;
+            }
+
             var record = RecordModel.fromJson(sender);
             final avatarUrl =
                 user.pb.getFileUrl(record, sender['avatar']).toString();
