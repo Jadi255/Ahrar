@@ -29,7 +29,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
   int _currentIndex = 0;
   final _pageController = PageController();
   var initConnectivityState;
-  int buildNo = 311223;
+  int buildNo = 4000124;
   bool get wantKeepAlive => true;
 
   final List<Widget> _children = [

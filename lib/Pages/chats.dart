@@ -5,6 +5,7 @@ import 'package:chat_bubbles/bubbles/bubble_special_one.dart';
 import 'package:chat_bubbles/chat_bubbles.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:pocketbase/pocketbase.dart';
 import 'package:provider/provider.dart';
 import 'package:qalam/Pages/cache.dart';
 import 'package:qalam/Pages/fetchers.dart';
@@ -20,12 +21,10 @@ class AllConversations extends StatefulWidget {
   State<AllConversations> createState() => _AllConversationsState();
 }
 
-class _AllConversationsState extends State<AllConversations>
-    with AutomaticKeepAliveClientMixin {
+class _AllConversationsState extends State<AllConversations> {
   List<Widget> convos = [];
   List<String> conversations = [];
   bool isLoading = false;
-  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -122,17 +121,24 @@ class _AllConversationsState extends State<AllConversations>
       String? lastText;
       var msgTime;
       var setLatest = messages.reversed.toList();
+      var partner;
       for (var item in setLatest) {
         var message = item.toJson();
         if (message['from'] == conversation || message['to'] == conversation) {
+          if (message['from'] == conversation) {
+            partner = message['expand']['from'];
+          } else if (message['to'] == conversation) {
+            partner = message['expand']['to'];
+          }
+
           lastText = message['text'];
           msgTime = formatDate(DateTime.parse(message['created']));
         }
       }
-      var request = await fetcher.getUser(conversation);
-      var chatPartner = request.toJson();
+      print(partner);
+      var request = RecordModel.fromJson(partner);
       final avatarUrl =
-          user.pb.getFileUrl(request, chatPartner['avatar']).toString();
+          user.pb.getFileUrl(request, partner['avatar']).toString();
       convos.add(
         Card(
           color: Colors.white,
@@ -146,8 +152,8 @@ class _AllConversationsState extends State<AllConversations>
                   PageRouteBuilder(
                     pageBuilder: (context, animation, secondaryAnimation) =>
                         ConversationView(
-                      id: chatPartner['id'],
-                      name: chatPartner['full_name'],
+                      id: partner['id'],
+                      name: partner['full_name'],
                       avatar: avatarUrl,
                     ),
                     transitionsBuilder:
@@ -173,9 +179,9 @@ class _AllConversationsState extends State<AllConversations>
                 foregroundImage: CachedNetworkImageProvider(avatarUrl),
                 backgroundImage: Image.asset('assets/placeholder.jpg').image,
               ),
-              title: Text(chatPartner['full_name'],
+              title: Text(partner['full_name'],
                   style: defaultText, textScaler: TextScaler.linear(0.90)),
-              //subtitle: Text(lastText!, textScaler: TextScaler.linear(0.80)),
+              subtitle: Text(lastText!, textScaler: TextScaler.linear(0.80)),
               trailing: Text(
                 msgTime,
                 textAlign: TextAlign.center,
@@ -192,7 +198,6 @@ class _AllConversationsState extends State<AllConversations>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     final user = Provider.of<User>(context, listen: false);
     return Scaffold(
       floatingActionButton: FloatingActionButton(
@@ -328,38 +333,6 @@ class _ConversationViewState extends State<ConversationView> {
     } else if (kIsWeb) {
       final fetcher = Fetcher(pb: user.pb);
       Timer.periodic(Duration(seconds: 5), (timer) async {
-<<<<<<< HEAD
-        final newMessages = await fetcher.fetchMessages(user.id);
-        for (var item in newMessages) {
-          var message = item.toJson();
-          if (!messages.contains(message['id'])) {
-            messages.add(message['id']);
-            bool isSender = (message['from'] == user.id);
-            var bubble;
-            var msgTime = DateTime.parse(message['created']);
-            var local = msgTime.toLocal();
-            var time =
-                '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
-            if (!isSender) {
-              bubble = Column(
-                children: [
-                  BubbleSpecialOne(
-                    text: message['text'],
-                    isSender: false,
-                    tail: false,
-                    color: Colors.white,
-                    textStyle: TextStyle(color: blackColor, fontSize: 14),
-                  ),
-                  BubbleSpecialOne(
-                    text: time,
-                    isSender: false,
-                    tail: false,
-                    color: Colors.transparent,
-                    textStyle:
-                        TextStyle(color: Colors.grey.shade500, fontSize: 10),
-                  ),
-                ],
-=======
         try {
           final newMessages = await fetcher.fetchMessages(user.id);
           for (var item in newMessages) {
@@ -406,7 +379,6 @@ class _ConversationViewState extends State<ConversationView> {
                 message['text'],
                 DateTime.parse(message['created']),
                 DateTime.parse(message['updated']),
->>>>>>> refs/remotes/origin/main
               );
               await CacheManager().cacheMessage(cacheMessage);
             }
@@ -524,10 +496,7 @@ class _ConversationViewState extends State<ConversationView> {
     if (controller.text == "") {
       return;
     }
-<<<<<<< HEAD
-=======
     var messageText = controller.text;
->>>>>>> refs/remotes/origin/main
     var date = DateTime.now();
     var local = date.toLocal();
     var time =
@@ -552,33 +521,20 @@ class _ConversationViewState extends State<ConversationView> {
         ),
       ],
     );
-<<<<<<< HEAD
-    controller.text = '';
-=======
->>>>>>> refs/remotes/origin/main
     bubbles.add(bubble);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
     });
 
-<<<<<<< HEAD
-    setState(() {});
-=======
     setState(() {
       controller.text = '';
     });
->>>>>>> refs/remotes/origin/main
 
     final user = Provider.of<User>(context, listen: false);
     final writer = Writer(pb: user.pb);
 
     try {
-<<<<<<< HEAD
-      final request =
-          await writer.sendMessage(controller.text, user.id, widget.id);
-=======
       final request = await writer.sendMessage(messageText, user.id, widget.id);
->>>>>>> refs/remotes/origin/main
       final message = Message(
         request['id'],
         request['to'],

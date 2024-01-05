@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:pocketbase/pocketbase.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
@@ -567,14 +568,11 @@ class _MyFriendsState extends State<MyFriends>
       return;
     }
     List<Widget> friendWidgets = [];
-    for (var item in friends) {
-      var target = await widget.user.pb.collection('users').getOne(item);
-      var friend = target.toJson();
-      String name = '${friend['fname']} ${friend['lname']}';
+    for (var friend in friends) {
+      String name = friend['full_name'];
+      var record = RecordModel.fromJson(friend);
       var avatarUrl =
-          widget.user.pb.getFileUrl(target, friend['avatar']).toString();
-
-      // Use CachedNetworkImageProvider for image caching
+          widget.user.pb.getFileUrl(record, friend['avatar']).toString();
       ImageProvider avatarImage = CachedNetworkImageProvider(avatarUrl);
 
       friendWidgets.add(

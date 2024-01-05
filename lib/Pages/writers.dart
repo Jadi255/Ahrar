@@ -39,17 +39,59 @@ class Writer {
     var request = await pb.collection('circle_posts').update(id, body: data);
   }
 
-  Future updatePost(id, post) async {
-    final body = {"post": post};
+  Future updatePost(id, post, topics) async {
+    var topicIDs = [];
+    if (topics.isNotEmpty) {
+      for (var topic in topics) {
+        var topicRecord =
+            await pb.collection('topics').getList(filter: 'topic ?~ "$topic"');
+        if (topicRecord.items.isNotEmpty) {
+          var item = topicRecord.items[0];
+          var topicMap = item.toJson();
+          topicIDs.add(topicMap['id']);
+        } else {
+          var newTopic =
+              await pb.collection('topics').create(body: {"topic": "$topic"});
 
-    await pb.collection('circle_posts').update(id, body: body);
+          var newTopicMap = newTopic.toJson();
+          topicIDs.add(newTopicMap['id']);
+        }
+      }
+    }
+
+    final body = {
+      "post": post,
+      "topic": topicIDs,
+    };
+
+    var record = await pb.collection('circle_posts').update(id, body: body);
+
+    var newPost = record.toJson();
+    var postID = newPost['id'];
+    if (topicIDs.isNotEmpty) {
+      for (var topic in topicIDs) {
+        var request = await pb.collection('topics').getOne(topic);
+        var response = request.toJson();
+        var posts = response['posts'];
+        posts.add(postID);
+
+        final body = <String, dynamic>{
+          "topic": response['topic'],
+          "posts": posts
+        };
+        for (var post in posts) {}
+
+        final record = await pb.collection('topics').update(topic, body: body);
+      }
+    }
   }
 
   Future updateComment(id, comment) async {
     final body = {"comment": comment};
 
-    final request =
-        await pb.collection('circle_comments').update(id, body: body);
+    final request = await pb
+        .collection('circle_comments')
+        .update(id, body: body, expand: "by");
   }
 
   Future deletePost(id, context) async {
@@ -97,8 +139,11 @@ class Writer {
       "topic": topicIDs,
       "linked_video": videoLink
     };
-    var record =
-        await pb.collection('circle_posts').create(body: body, files: images);
+    var record = await pb.collection('circle_posts').create(
+          body: body,
+          files: images,
+          expand: "by",
+        );
     var newPost = record.toJson();
     var postID = newPost['id'];
     if (topicIDs.isNotEmpty) {
@@ -126,7 +171,8 @@ class Writer {
       "comment": comment
     };
 
-    final record = await pb.collection('circle_comments').create(body: body);
+    final record =
+        await pb.collection('circle_comments').create(body: body, expand: "by");
     final recordMap = record.toJson();
     final commentID = recordMap['id'];
     final postRecord = await pb.collection('circle_posts').getOne(post);
@@ -148,7 +194,8 @@ class Writer {
   Future sendMessage(message, from, to) async {
     final body = <String, dynamic>{"to": to, "from": from, "text": message};
 
-    final record = await pb.collection('messages').create(body: body);
+    final record =
+        await pb.collection('messages').create(body: body, expand: "from, to");
     final response = record.toJson();
     return response;
   }

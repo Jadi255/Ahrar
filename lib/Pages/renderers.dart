@@ -73,7 +73,6 @@ class Renderer extends ChangeNotifier {
       user = Provider.of<User>(context, listen: false);
     }
     ImageProvider avatar = user.avatar!;
-    print("avatar: $avatar");
     final pb = user.pb;
     try {
       switch (mode) {
@@ -111,12 +110,10 @@ class Renderer extends ChangeNotifier {
         if (mode != 'myPosts') {
           var poster = postData['expand']['by'];
           var posterRecord = RecordModel.fromJson(poster);
-          print(poster.keys);
           fullName = poster['full_name'];
           final avatarUrl =
               user.pb.getFileUrl(posterRecord, poster['avatar']).toString();
           avatar = CachedNetworkImageProvider(avatarUrl);
-          print(avatarUrl);
         }
         if (mode == 'filter') {
           postsData.sort((a, b) {
@@ -180,10 +177,9 @@ class Renderer extends ChangeNotifier {
     final user = Provider.of<User>(context, listen: false);
     switch (event) {
       case 'create':
-        if (post['by'] == user.id && !postIDs.contains(post['id'])) {
+        if (post['by'] == user.id) {
           final newPost =
               await createPostWidget(post, user.fullName, user.avatar!, user);
-
           List<Widget> newPosts = [newPost];
           List newPostIDs = [post['id']];
           for (var existingPost in postWidgets) {
@@ -201,12 +197,15 @@ class Renderer extends ChangeNotifier {
           _postsStreamController.add(postWidgets);
           notifyListeners();
           break;
+        } else {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('يوجد منشورات جديدة')));
         }
       //TODO FIX HERE
       case 'update':
         var post = record.toJson();
-        final posterRecord = await _fetcher.getUser(post['by']);
-        final poster = posterRecord.toJson();
+        var poster = post['expand']['by'];
+        var posterRecord = RecordModel.fromJson(poster);
         var avatarUrl =
             pb.getFileUrl(posterRecord, poster['avatar']).toString();
         try {
@@ -776,7 +775,6 @@ class Renderer extends ChangeNotifier {
 
   Future renderComments(comments, context,
       StreamController<List<Widget>> commentsStreamController) async {
-    final fetcher = Fetcher(pb: pb);
     if (comments.isEmpty) {
       commentWidgets = [];
       commentsStreamController.add(commentWidgets);
@@ -784,10 +782,8 @@ class Renderer extends ChangeNotifier {
     }
     for (int i = 0; i < comments.length; i++) {
       var comment = comments[i];
-      commentIDs.add(comment);
-      var commentRecord = await fetcher.fetchComments(comment);
-
-      var commentCard = await createCommentCard(commentRecord, context);
+      commentIDs.add(comment['id']);
+      var commentCard = await createCommentCard(comment, context);
       commentWidgets.add(commentCard);
     }
     commentsStreamController.add(commentWidgets);
@@ -802,10 +798,10 @@ class Renderer extends ChangeNotifier {
     } else {
       post = record;
     }
-    var posterRecord = await pb.collection('users').getOne(post['by']);
-    Map userData = posterRecord.toJson();
-    String name = '${userData['fname']} ${userData['lname']}';
-    var avatarUrl = pb.getFileUrl(posterRecord, userData['avatar']).toString();
+    var poster = post['expand']['by'];
+    var posterRecord = RecordModel.fromJson(poster);
+    String name = poster['full_name'];
+    var avatarUrl = pb.getFileUrl(posterRecord, poster['avatar']).toString();
     var avatar = CachedNetworkImageProvider(avatarUrl);
     var postTime = timeAgo(DateTime.parse(post['created']).toLocal());
     Widget header = GestureDetector(
@@ -1028,6 +1024,7 @@ class Renderer extends ChangeNotifier {
   }
 
   void updatePost(post, context) async {
+    List topics = [];
     final user = Provider.of<User>(context, listen: false);
     var controller = DetectableTextEditingController(
         regExp: detectionRegExp(atSign: false),
@@ -1038,6 +1035,22 @@ class Renderer extends ChangeNotifier {
     TextDirection textDirection = isArabic(controller.text.split('')[0])
         ? TextDirection.rtl
         : TextDirection.ltr;
+
+    void getTopic(value) {
+      if (!hashTagRegExp.hasMatch(value)) {
+        return;
+      }
+      var strings = value.split(' ');
+      for (var string in strings) {
+        if (hashTagRegExp.hasMatch(string)) {
+          string = string.split('#')[1];
+          string = string.replaceAll(RegExp(r'[^\w\s]+$'), '');
+          string = string.trim(); // Add this line
+          topics.add(string);
+        }
+      }
+    }
+
     showDialog(
         barrierDismissible: false,
         context: context,
@@ -1065,14 +1078,17 @@ class Renderer extends ChangeNotifier {
                                 } else {
                                   setState(
                                     () {
-                                      textDirection =
-                                          isArabic(controller.text.split('')[0])
-                                              ? TextDirection.rtl
-                                              : TextDirection.ltr;
+                                      var firstString =
+                                          controller.text.split(' ')[0];
+                                      if (hashTagRegExp.hasMatch(firstString)) {
+                                        firstString = firstString.split('#')[1];
+                                      }
+                                      textDirection = isArabic(firstString)
+                                          ? TextDirection.rtl
+                                          : TextDirection.ltr;
                                     },
                                   );
                                 }
-                                if (hashTagRegExp.hasMatch(value)) {}
                               },
                               controller: controller,
                               decoration: InputDecoration(
@@ -1101,6 +1117,7 @@ class Renderer extends ChangeNotifier {
                                 onPressed: () async {
                                   Writer writer = Writer(pb: pb);
                                   post['post'] = controller.text;
+                                  getTopic(controller.text);
                                   var postWidget = await createPostWidget(
                                       post, user.fullName, user.avatar!, user);
                                   postWidgets[postIDs.indexOf(post['id'])] =
@@ -1109,7 +1126,7 @@ class Renderer extends ChangeNotifier {
                                   notifyListeners();
                                   _postsStreamController.add(postWidgets);
                                   await writer.updatePost(
-                                      post['id'], post['post']);
+                                      post['id'], post['post'], topics);
                                   Navigator.of(context).pop();
                                 },
                                 child: Text('حفظ',
@@ -1290,7 +1307,7 @@ class _ShowCommentsState extends State<ShowComments> {
   List<Widget> commentWidgets = [];
   bool isSending = false;
   bool isLoading = true;
-
+  List<Widget> ratings = [];
   @override
   void initState() {
     super.initState();
@@ -1302,12 +1319,77 @@ class _ShowCommentsState extends State<ShowComments> {
       });
     });
     loadComments();
+    makeRatings();
+  }
+
+  void makeRatings() {
+    final user = Provider.of<User>(context, listen: false);
+    var likes = widget.post['expand']['likes'];
+    var dislikes = widget.post['expand']['dislikes'];
+    if (likes != null) {
+      for (var item in likes) {
+        var name = item['full_name'];
+        var avatar = item['avatar'];
+        var avatarUrl = user.pb
+            .getFileUrl(RecordModel.fromJson(item), item['avatar'])
+            .toString();
+
+        var tile = Card(
+          color: Colors.white,
+          surfaceTintColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: ListTile(
+              leading: CircleAvatar(
+                radius: 25,
+                backgroundColor: Colors.grey.shade100,
+                foregroundImage: CachedNetworkImageProvider(avatarUrl),
+                backgroundImage: Image.asset('assets/placeholder.jpg').image,
+              ),
+              title: Text(name, style: defaultText),
+              trailing: Icon(Icons.thumb_up, color: greenColor),
+            ),
+          ),
+        );
+        ratings.add(tile);
+        setState(() {});
+      }
+    }
+    if (dislikes != null) {
+      for (var item in dislikes) {
+        var name = item['full_name'];
+        var avatar = item['avatar'];
+        var avatarUrl = user.pb
+            .getFileUrl(RecordModel.fromJson(item), item['avatar'])
+            .toString();
+
+        var tile = Card(
+          color: Colors.white,
+          surfaceTintColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: ListTile(
+              leading: CircleAvatar(
+                radius: 25,
+                backgroundColor: Colors.grey.shade100,
+                foregroundImage: CachedNetworkImageProvider(avatarUrl),
+                backgroundImage: Image.asset('assets/placeholder.jpg').image,
+              ),
+              title: Text(name, style: defaultText),
+              trailing: Icon(Icons.thumb_down, color: redColor),
+            ),
+          ),
+        );
+        ratings.add(tile);
+        setState(() {});
+      }
+    }
   }
 
   void loadComments() async {
     Renderer renderer = Provider.of<Renderer>(context, listen: false);
-    await renderer.renderComments(
-        widget.post['comments'], context, renderer._commentsStreamController);
+    await renderer.renderComments(widget.post['expand']['comments'], context,
+        renderer._commentsStreamController);
     setState(() {
       isLoading = false;
     });
@@ -1325,10 +1407,6 @@ class _ShowCommentsState extends State<ShowComments> {
     Widget commentWidget;
     commentWidget = pagePadding(
       ListView(children: [
-        Visibility(
-          child: Center(child: CupertinoActivityIndicator()),
-          visible: isLoading,
-        ),
         Padding(
           padding: const EdgeInsets.only(bottom: 100.0),
           child: Column(
@@ -1338,102 +1416,125 @@ class _ShowCommentsState extends State<ShowComments> {
       ]),
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_downward),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
-      bottomSheet: Card(
-        color: Colors.white,
-        surfaceTintColor: Colors.white,
-        child: pagePadding(
-          Directionality(
-            textDirection: TextDirection.rtl,
-            child: StatefulBuilder(
-              builder: ((context, setState) {
-                return Row(
-                  children: [
-                    Directionality(
-                      textDirection: TextDirection.ltr,
-                      child: IconButton(
-                        icon: icon,
-                        onPressed: () async {
-                          if (isSending) {
-                            return;
-                          }
-                          setState(() {
-                            icon = CupertinoActivityIndicator();
-                            isSending = true;
-                          });
-                          final comment = controller.text;
-                          final post = widget.post['id'];
-                          final user =
-                              Provider.of<User>(context, listen: false);
-                          final id = user.id;
-                          final writer = Writer(pb: user.pb);
-
-                          final newComment =
-                              await writer.writeComment(comment, post, id);
-                          await renderer.newComment(newComment, context);
-                          icon = Icon(Icons.send);
-                          controller.text = "";
-                          isSending = false;
-                          setState(() {});
-                        },
-                      ),
-                    ),
-                    Expanded(
-                      child: DetectableTextField(
-                        enableSuggestions: true,
-                        enableInteractiveSelection: true,
-                        maxLines: null,
-                        textDirection: textDirection,
-                        onChanged: (value) async {
-                          if (controller.text == '') {
-                            return;
-                          } else {
-                            setState(
-                              () {
-                                textDirection =
-                                    isArabic(controller.text.split('')[0])
-                                        ? TextDirection.rtl
-                                        : TextDirection.ltr;
-                              },
-                            );
-                          }
-                          if (hashTagRegExp.hasMatch(value)) {}
-                        },
-                        controller: controller,
-                        decoration: InputDecoration(
-                          label: Text('اضف تعليق'),
-                          labelStyle: TextStyle(
-                            color: Colors.black, // Set your desired color
-                          ),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 15, vertical: 10),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(
-                                30), // Circular/Oval border
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              }),
+    return DefaultTabController(
+        initialIndex: 0,
+        length: 2,
+        child: Scaffold(
+          appBar: AppBar(
+            title: TabBar(
+              dividerHeight: 0,
+              dividerColor: Colors.white,
+              overlayColor: MaterialStatePropertyAll(Colors.white),
+              labelColor: greenColor,
+              indicatorColor: Colors.white,
+              unselectedLabelColor: blackColor,
+              tabs: const <Widget>[
+                Tab(icon: Icon(Icons.messenger_rounded)),
+                Tab(icon: Icon(Icons.thumbs_up_down_sharp)),
+              ],
+            ),
+            leading: IconButton(
+              icon: Icon(Icons.arrow_downward),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
             ),
           ),
-        ),
-      ),
-      body: commentWidget,
-    );
+          bottomSheet: Card(
+            color: Colors.white,
+            surfaceTintColor: Colors.white,
+            child: pagePadding(
+              Directionality(
+                textDirection: TextDirection.rtl,
+                child: StatefulBuilder(
+                  builder: ((context, setState) {
+                    return Row(
+                      children: [
+                        Directionality(
+                          textDirection: TextDirection.ltr,
+                          child: IconButton(
+                            icon: icon,
+                            onPressed: () async {
+                              if (isSending) {
+                                return;
+                              }
+                              setState(() {
+                                icon = CupertinoActivityIndicator();
+                                isSending = true;
+                              });
+                              final comment = controller.text;
+                              final post = widget.post['id'];
+                              final user =
+                                  Provider.of<User>(context, listen: false);
+                              final id = user.id;
+                              final writer = Writer(pb: user.pb);
+
+                              final newComment =
+                                  await writer.writeComment(comment, post, id);
+                              await renderer.newComment(newComment, context);
+                              icon = Icon(Icons.send);
+                              controller.text = "";
+                              isSending = false;
+                              setState(() {});
+                            },
+                          ),
+                        ),
+                        Expanded(
+                          child: DetectableTextField(
+                            enableSuggestions: true,
+                            enableInteractiveSelection: true,
+                            maxLines: null,
+                            textDirection: textDirection,
+                            onChanged: (value) async {
+                              if (controller.text == '') {
+                                return;
+                              } else {
+                                setState(
+                                  () {
+                                    textDirection =
+                                        isArabic(controller.text.split('')[0])
+                                            ? TextDirection.rtl
+                                            : TextDirection.ltr;
+                                  },
+                                );
+                              }
+                              if (hashTagRegExp.hasMatch(value)) {}
+                            },
+                            controller: controller,
+                            decoration: InputDecoration(
+                              label: Text('اضف تعليق'),
+                              labelStyle: TextStyle(
+                                color: Colors.black, // Set your desired color
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 15, vertical: 10),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                    30), // Circular/Oval border
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ),
+              ),
+            ),
+          ),
+          body: TabBarView(
+            children: [
+              commentWidget,
+              Padding(
+                padding: const EdgeInsets.only(bottom: 100.0),
+                child: pagePadding(Column(children: ratings)),
+              )
+            ],
+          ),
+        ));
   }
 }
 
@@ -1478,6 +1579,7 @@ class _CreatePostState extends State<CreatePost> {
       if (hashTagRegExp.hasMatch(string)) {
         string = string.split('#')[1];
         string = string.replaceAll(RegExp(r'[^\w\s]+$'), '');
+        string = string.trim(); // Add this line
         topics.add(string);
       }
     }
@@ -1775,7 +1877,6 @@ class _CreatePostState extends State<CreatePost> {
 
                           final user =
                               Provider.of<User>(context, listen: false);
-
                           final writer = Writer(pb: user.pb);
                           await writer.createPost(
                               multipartFiles,
@@ -1784,7 +1885,6 @@ class _CreatePostState extends State<CreatePost> {
                               isPublic,
                               controller.text,
                               videoLink.text);
-
                           topics.clear();
                           Navigator.of(context).pop();
                           Navigator.of(context).pop();
@@ -1868,7 +1968,7 @@ class _ShowFullPostState extends State<ShowFullPost> {
   @override
   Widget build(BuildContext context) {
     Renderer renderer = Provider.of<Renderer>(context);
-
+    //TODO fix here
     Future getPost() async {
       var user = Provider.of<User>(context, listen: false);
       final fetcher = Fetcher(pb: user.pb);
@@ -1905,8 +2005,23 @@ class _ShowFullPostState extends State<ShowFullPost> {
             }
             if (snapshot.hasError) {
               return Center(
-                child: Text(
-                    'An unexpected error occurred, please try again later'),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error,
+                      color: Colors.black,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                      child: Text(
+                        'نعتذر، حدث خطأ ما\nالرجاء المحاولة في وقت لاحق',
+                        style: defaultText,
+                        textDirection: TextDirection.rtl,
+                      ),
+                    ),
+                  ],
+                ),
               );
             }
             if (snapshot.hasData) {

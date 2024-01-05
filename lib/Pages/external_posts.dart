@@ -9,10 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:pocketbase/pocketbase.dart';
 import 'package:qalam/styles.dart';
-<<<<<<< HEAD
-=======
 import 'package:url_launcher/url_launcher.dart';
->>>>>>> refs/remotes/origin/main
 import 'package:youtube_player_iframe_plus/youtube_player_iframe_plus.dart';
 
 class ExternalLink extends StatefulWidget {
@@ -33,10 +30,6 @@ class _ExternalLinkState extends State<ExternalLink> {
     var fullName = poster['full_name'];
     var avatarUrl = pb.getFileUrl(posterRecord, poster['avatar']).toString();
     var postWidget = await createPostWidget(post, pb, fullName, avatarUrl);
-<<<<<<< HEAD
-    print(post);
-=======
->>>>>>> refs/remotes/origin/main
     return postWidget;
   }
 
@@ -53,10 +46,6 @@ class _ExternalLinkState extends State<ExternalLink> {
 
   Future createPostWidget(post, pb, fullName, avatar) async {
     List<Widget> images = [];
-<<<<<<< HEAD
-    print("$fullName\n$avatar");
-=======
->>>>>>> refs/remotes/origin/main
     late YoutubePlayerController videoController;
     var id;
     if (post['linked_video'] != '') {
@@ -212,35 +201,6 @@ class _ExternalLinkState extends State<ExternalLink> {
               showDialog(
                   context: context,
                   builder: (context) {
-<<<<<<< HEAD
-                    return AlertDialog(
-                      backgroundColor: Colors.white,
-                      surfaceTintColor: Colors.white,
-                      title: Text(
-                        'قلم',
-                        style: defaultText,
-                        textAlign: TextAlign.center,
-                      ),
-                      content: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Column(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 10.0),
-                                child: logo,
-                              ),
-                              Text(
-                                'منصة التواصل الاجتماعي العربية\n',
-                                style: defaultText,
-                                textAlign: TextAlign.center,
-                              ),
-                              Text(
-                                '"قلم " منصة تواصل اجتماعي عربية تم تطويرها لتوفير مساحة حرة وآمنة للتعبير والتواصل بين المستخدمين العرب.\n\nتأسست "قلم" كرد فعل على الرقابة والقيود المفروضة على المنصات الاجتماعية الأخرى، وهي تهدف إلى توفير منصة حيث يمكن للأفراد التعبير عن آرائهم ومشاركة القضايا التي تهمهم بحرية تامة.\n\n"قلم" هو أيضاً منصة تكنولوجية عربية، تم تطويرها بواسطة مبرمجين عرب، وتهدف إلى توفير فرص للمبرمجين وصناع المحتوى العرب.',
-                                textDirection: TextDirection.rtl,
-                              )
-                            ],
-                          )),
-=======
                     return Directionality(
                       textDirection: TextDirection.rtl,
                       child: AlertDialog(
@@ -286,7 +246,6 @@ class _ExternalLinkState extends State<ExternalLink> {
                                 child: Text('أجهزة iOS'),
                                 style: TextButtonStyle),
                           ]),
->>>>>>> refs/remotes/origin/main
                     );
                   });
             },

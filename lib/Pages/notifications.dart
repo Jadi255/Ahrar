@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:pocketbase/pocketbase.dart';
 import 'package:provider/provider.dart';
 import 'package:qalam/Pages/chats.dart';
 import 'package:qalam/Pages/fetchers.dart';
@@ -125,6 +127,20 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
     items = widget.data;
   }
 
+  String formatDate(DateTime date) {
+    date = date.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final aDate = DateTime(date.year, date.month, date.day);
+    var hour = date.hour;
+    var minutes = date.minute;
+    if (aDate == today) {
+      return '${hour.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+    } else {
+      return '${aDate.day}/${aDate.month}\n${hour.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+    }
+  }
+
   Stream<List<Widget>> getNewNotifications(items) async* {
     final user = Provider.of<User>(context, listen: false);
     Fetcher fetcher = Fetcher(pb: user.pb);
@@ -138,17 +154,20 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
       yield widgets;
       return;
     }
+
     for (var item in items) {
       var notification = item.toJson();
       var color = notification['seen'] ? Colors.white : Colors.green[50];
       var type = notification['type'];
+      var msgTime = formatDate(DateTime.parse(notification['created']));
+
       switch (type) {
         case 'request':
           try {
-            var sender = await fetcher.getUser(notification['linked_id']);
-            var senderData = sender.toJson();
+            var sender = notification['expand']['linked_user'];
+            var record = RecordModel.fromJson(sender);
             final avatarUrl =
-                user.pb.getFileUrl(sender, senderData['avatar']).toString();
+                user.pb.getFileUrl(record, sender['avatar']).toString();
 
             Widget notificationCard = Card(
               color: color,
@@ -166,7 +185,7 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                               backgroundColor: Colors.white,
                               surfaceTintColor: Colors.white,
                               content: Text(
-                                  'أرسل لك المستخدم ${senderData['full_name']} طلب صداقة',
+                                  'أرسل لك المستخدم ${sender['full_name']} طلب صداقة',
                                   style: defaultText),
                               actions: [
                                 TextButton(
@@ -180,9 +199,8 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                                         pageBuilder: (context, animation,
                                                 secondaryAnimation) =>
                                             UserProfile(
-                                                id: senderData['id'],
-                                                fullName:
-                                                    senderData['full_name']),
+                                                id: sender['id'],
+                                                fullName: sender['full_name']),
                                         transitionsBuilder: (context, animation,
                                             secondaryAnimation, child) {
                                           var begin = Offset(1.0, 0.0);
@@ -208,7 +226,7 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                                       foregroundColor:
                                           MaterialStatePropertyAll(greenColor)),
                                   onPressed: () async {
-                                    await fetcher.acceptRequest(
+                                    fetcher.acceptRequest(
                                         user.id,
                                         notification['linked_id'],
                                         notification['id']);
@@ -225,8 +243,7 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                                       foregroundColor:
                                           MaterialStatePropertyAll(redColor)),
                                   onPressed: () async {
-                                    await fetcher
-                                        .ignoreRequest(notification['id']);
+                                    fetcher.ignoreRequest(notification['id']);
                                     Navigator.of(context).pop();
                                   },
                                   child: Text('تجاهل'),
@@ -236,7 +253,7 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                       },
                     );
                     Writer writer = Writer(pb: user.pb);
-                    await writer.markNotificationRead(notification['id']);
+                    writer.markNotificationRead(notification['id']);
                   },
                   leading: CircleAvatar(
                     radius: 25,
@@ -251,8 +268,13 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                     textDirection: TextDirection.rtl,
                   ),
                   subtitle: Text(
-                      'أرسل لك المستخدم ${senderData['full_name']} طلب صداقة',
+                      'أرسل لك المستخدم ${sender['full_name']} طلب صداقة',
                       textDirection: TextDirection.rtl),
+                  trailing: Text(
+                    msgTime,
+                    textAlign: TextAlign.center,
+                    textScaler: TextScaler.linear(0.75),
+                  ),
                 ),
               ),
             );
@@ -264,10 +286,10 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
           break;
         case 'alert':
           try {
-            var sender = await fetcher.getUser(notification['linked_id']);
-            var senderData = sender.toJson();
+            var sender = notification['expand']['linked_user'];
+            var record = RecordModel.fromJson(sender);
             final avatarUrl =
-                user.pb.getFileUrl(sender, senderData['avatar']).toString();
+                user.pb.getFileUrl(record, sender['avatar']).toString();
 
             Widget notificationCard = Card(
               color: color,
@@ -281,8 +303,8 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                       PageRouteBuilder(
                         pageBuilder: (context, animation, secondaryAnimation) =>
                             UserProfile(
-                                id: senderData['id'],
-                                fullName: senderData['full_name']),
+                                id: sender['id'],
+                                fullName: sender['full_name']),
                         transitionsBuilder:
                             (context, animation, secondaryAnimation, child) {
                           var begin = Offset(1.0, 0.0);
@@ -308,30 +330,35 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                         Image.asset('assets/placeholder.jpg').image,
                   ),
                   title: Text(
-                    'قبل المستخدم ${senderData['full_name']} طلب صداقتك',
+                    'قبل المستخدم ${sender['full_name']} طلب صداقتك',
                     style: defaultText,
                     textDirection: TextDirection.rtl,
+                  ),
+                  trailing: Text(
+                    msgTime,
+                    textAlign: TextAlign.center,
+                    textScaler: TextScaler.linear(0.75),
                   ),
                 ),
               ),
             );
 
             widgets.add(notificationCard);
-            await fetcher.markAsRead(notification['id']);
+            fetcher.markAsRead(notification['id']);
           } catch (e) {
             print(e);
           }
           break;
         case 'comment':
+          var post =
+              notification['expand']['linked_comment']['expand']['post']['id'];
+          print(post);
           try {
-            var commentRecord =
-                await fetcher.getComment(notification['linked_id']);
-            var comment = commentRecord.toJson();
-            var post = comment['post'];
-            var by = await fetcher.getUser(comment['by']);
-            var senderData = by.toJson();
+            var sender =
+                notification['expand']['linked_comment']['expand']['by'];
+            var record = RecordModel.fromJson(sender);
             final avatarUrl =
-                user.pb.getFileUrl(by, senderData['avatar']).toString();
+                user.pb.getFileUrl(record, sender['avatar']).toString();
 
             Widget notificationCard = Card(
               color: color,
@@ -341,7 +368,7 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                 ListTile(
                   onTap: () async {
                     Writer writer = Writer(pb: user.pb);
-                    await writer.markNotificationRead(notification['id']);
+                    writer.markNotificationRead(notification['id']);
                     Navigator.push(
                       context,
                       PageRouteBuilder(
@@ -378,27 +405,29 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                   title: Text('تعليق جديد',
                       style: defaultText, textDirection: TextDirection.rtl),
                   subtitle: Text(
-                      'علق المستخدم ${senderData['full_name']} على منشور تتابعه',
+                      'علق المستخدم ${sender['full_name']} على منشور تتابعه',
                       textDirection: TextDirection.rtl),
+                  trailing: Text(
+                    msgTime,
+                    textAlign: TextAlign.center,
+                    textScaler: TextScaler.linear(0.75),
+                  ),
                 ),
               ),
             );
 
             widgets.add(notificationCard);
-            await fetcher.markAsRead(notification['id']);
+            fetcher.markAsRead(notification['id']);
           } catch (e) {
-            await user.pb
-                .collection('notifications')
-                .delete(notification['id']);
+            user.pb.collection('notifications').delete(notification['id']);
           }
           break;
         case 'message':
           try {
-            final request = await fetcher.getUser(notification['linked_id']);
-            final sender = request.toJson();
+            var sender = notification['expand']['linked_user'];
+            var record = RecordModel.fromJson(sender);
             final avatarUrl =
-                user.pb.getFileUrl(request, sender['avatar']).toString();
-
+                user.pb.getFileUrl(record, sender['avatar']).toString();
             widgets.add(
               Card(
                 color: color,
@@ -442,11 +471,16 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                     ),
                     title: Text('لديك رسالة جديدة من ${sender['full_name']}',
                         style: defaultText, textDirection: TextDirection.rtl),
+                    trailing: Text(
+                      msgTime,
+                      textAlign: TextAlign.center,
+                      textScaler: TextScaler.linear(0.75),
+                    ),
                   ),
                 ),
               ),
             );
-            await fetcher.markAsRead(notification['id']);
+            fetcher.markAsRead(notification['id']);
           } catch (e) {
             print(e);
           }

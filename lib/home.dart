@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:qalam/Pages/cache.dart';
@@ -30,11 +29,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
   int _currentIndex = 0;
   final _pageController = PageController();
   var initConnectivityState;
-<<<<<<< HEAD
-  int buildNo = 291223;
-=======
   int buildNo = 311223;
->>>>>>> refs/remotes/origin/main
   bool get wantKeepAlive => true;
 
   final List<Widget> _children = [
@@ -55,14 +50,9 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
         if (user.fullName == "") {
           context.go('/');
         }
-<<<<<<< HEAD
-      }
-      await checkUpdates();
-=======
       } else {
         await checkUpdates();
       }
->>>>>>> refs/remotes/origin/main
       await getAlerts();
     });
     getInitConnectivity();

@@ -95,8 +95,23 @@ class _TopicsState extends State<Topics> {
               }
               if (snapshot.hasError) {
                 return Center(
-                  child: Text(
-                      'An unexpected error occurred, please try again later'),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error,
+                        color: Colors.black,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                        child: Text(
+                          'نعتذر، حدث خطأ ما\nالرجاء المحاولة في وقت لاحق',
+                          style: defaultText,
+                          textDirection: TextDirection.rtl,
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               }
               if (snapshot.hasData) {

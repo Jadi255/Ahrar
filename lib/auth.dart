@@ -1,9 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-<<<<<<< HEAD
-=======
 import 'package:flutter/widgets.dart';
->>>>>>> refs/remotes/origin/main
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
@@ -300,10 +301,10 @@ class User extends ChangeNotifier {
   }
 
   Future getFriends() async {
-    var record = await pb.collection('users').getOne(this.id);
+    var record =
+        await pb.collection('users').getOne(this.id, expand: "friends");
     var map = record.toJson();
 
-    List friends = map['friends'];
-    return friends;
+    return map['expand']['friends'];
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:intl/intl.dart';
 import 'package:pocketbase/pocketbase.dart';
@@ -17,6 +18,7 @@ class Fetcher {
     final request = await pb.collection('circle_posts').getList(
         page: page,
         perPage: perPage,
+        expand: "by,comments.by, likes, dislikes",
         filter: 'by.id = "$id"',
         sort: '-created');
 
@@ -29,7 +31,7 @@ class Fetcher {
     final request = await pb.collection('circle_posts').getList(
         page: page,
         perPage: perPage,
-        expand: "by",
+        expand: "by,comments.by, likes, dislikes",
         filter: 'by.id = "$id"',
         sort: '-created');
 
@@ -42,7 +44,7 @@ class Fetcher {
     final request = await pb.collection('circle_posts').getList(
         page: page,
         perPage: perPage,
-        expand: "by",
+        expand: "by,comments.by, likes, dislikes",
         filter: 'topic.id ?= "$topic"',
         sort: '-created');
     var response = request.toJson();
@@ -70,20 +72,24 @@ class Fetcher {
   }
 
   Future fetchComments(String id) async {
-    return pb.collection('circle_comments').getOne(id);
+    var comments = await pb.collection('circle_comments').getFullList(
+          filter: 'post.id = "$id"',
+          expand: 'by',
+        );
+    return comments;
   }
 
   Future getPublicPosts(context, pb, page, perPage) async {
     final request = await pb.collection('circle_posts').getList(
           page: page,
           perPage: perPage,
-          expand: "by, comments",
+          expand: "by,comments.by, likes, dislikes",
+          filter: 'is_public = true',
           sort: '-created',
         );
 
     var response = request.toJson();
     var posts = response['items'];
-    print(posts[0]);
     return posts;
   }
 
@@ -95,6 +101,7 @@ class Fetcher {
       final request = await pb.collection('circle_posts').getList(
             page: page,
             perPage: perPage,
+            expand: "by,comments.by, likes, dislikes",
             sort: pbSort,
           );
       var response = request.toJson();
@@ -123,7 +130,12 @@ class Fetcher {
           DateFormat('yyyy-MM-dd HH:mm:ss').format(startDate);
       pbFilter += 'created >= "$formattedStartDate"';
       final request = await pb.collection('circle_posts').getList(
-          page: page, perPage: perPage, filter: pbFilter, sort: pbSort);
+            page: page,
+            perPage: perPage,
+            filter: pbFilter,
+            sort: pbSort,
+            expand: "by,comments.by, likes, dislikes",
+          );
       var response = request.toJson();
       var posts = response['items'];
       return posts;
@@ -134,6 +146,7 @@ class Fetcher {
     final request = await pb.collection('circle_posts').getList(
           page: page,
           perPage: perPage,
+          expand: "by,comments.by, likes, dislikes",
           filter: 'is_public = false',
           sort: '-created',
         );
@@ -145,8 +158,14 @@ class Fetcher {
 
   Future postSubscriber(context) async {
     final renderer = Provider.of<Renderer>(context, listen: false);
-    pb.collection('circle_posts').subscribe("*", (e) {
-      renderer.updateSubscriber(e.action, e.record, context);
+    pb.collection('circle_posts').subscribe("*", (e) async {
+      var item = e.record!.toJson();
+      var id = item['id'];
+      var post = await pb.collection('circle_posts').getOne(
+            id,
+            expand: "by,comments.by, likes, dislikes",
+          );
+      renderer.updateSubscriber(e.action, post, context);
     });
   }
 
@@ -169,7 +188,10 @@ class Fetcher {
   }
 
   Future getPost(post) async {
-    final request = await pb.collection('circle_posts').getOne(post);
+    final request = await pb.collection('circle_posts').getOne(
+          post,
+          expand: "by,comments.by, likes, dislikes",
+        );
 
     return request;
   }
@@ -177,6 +199,8 @@ class Fetcher {
   Future getNotificationCount(user) async {
     final records = await pb.collection('notifications').getFullList(
           filter: 'user.id = "$user"',
+          expand:
+              'linked_user,linked_comment.post,linked_comment.post.comments, linked_comment.by',
           sort: '-created',
         );
     return records;
@@ -276,7 +300,6 @@ class Fetcher {
           filter: 'to.id = "$user" || from.id = "$user"',
         );
 
-    //TODO Expansion
     return request;
   }
 
