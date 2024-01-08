@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -44,12 +43,14 @@ class _NotificationBellState extends State<NotificationBell> {
       });
     } else if (kIsWeb) {
       Timer.periodic(
-        Duration(seconds: 15),
+        Duration(seconds: 30),
         (timer) async {
           try {
             await getNotifications();
           } catch (e) {
-            print(e);
+            await Future.delayed(Duration(milliseconds: 1000), () async {
+              await getNotifications();
+            });
           }
         },
       );
@@ -98,7 +99,7 @@ class _NotificationBellState extends State<NotificationBell> {
               return ChangeNotifierProvider(
                 create: (context) =>
                     Renderer(fetcher: Fetcher(pb: user.pb), pb: user.pb),
-                child: NotificationsMenu(data: notificationData),
+                child: NotificationsMenu(),
               );
             });
 
@@ -112,8 +113,7 @@ class _NotificationBellState extends State<NotificationBell> {
 }
 
 class NotificationsMenu extends StatefulWidget {
-  final data;
-  NotificationsMenu({super.key, required this.data});
+  NotificationsMenu({super.key});
 
   @override
   State<NotificationsMenu> createState() => _NotificationsMenuState();
@@ -124,7 +124,6 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
   @override
   void initState() {
     super.initState();
-    items = widget.data;
   }
 
   String formatDate(DateTime date) {
@@ -141,9 +140,17 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
     }
   }
 
-  Stream<List<Widget>> getNewNotifications(items) async* {
+  Stream<List<Widget>> getNewNotifications() async* {
     final user = Provider.of<User>(context, listen: false);
     Fetcher fetcher = Fetcher(pb: user.pb);
+    var items;
+    try {
+      items = await fetcher.getNotifications(user.id);
+    } catch (e) {
+      await Future.delayed(Duration(milliseconds: 500), () async {
+        items = await fetcher.getNotifications(user.id);
+      });
+    }
     List<Widget> widgets = [];
     if (items.length == 0) {
       widgets.add(
@@ -180,6 +187,9 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
               child: pagePadding(
                 ListTile(
                   onTap: () async {
+                    Writer writer = Writer(pb: user.pb);
+                    writer.markNotificationRead(notification['id']);
+
                     showDialog(
                       context: context,
                       builder: (context) {
@@ -256,8 +266,6 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                         );
                       },
                     );
-                    Writer writer = Writer(pb: user.pb);
-                    writer.markNotificationRead(notification['id']);
                   },
                   leading: CircleAvatar(
                     radius: 25,
@@ -463,10 +471,11 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                         PageRouteBuilder(
                           pageBuilder:
                               (context, animation, secondaryAnimation) =>
-                                  ConversationView(
-                                      name: sender['full_name'],
-                                      id: sender['id'],
-                                      avatar: avatarUrl),
+                                  Scaffold(
+                                      appBar: AppBar(
+                                        automaticallyImplyLeading: true,
+                                      ),
+                                      body: AllConversations()),
                           transitionsBuilder:
                               (context, animation, secondaryAnimation, child) {
                             var begin = Offset(1.0, 0.0);
@@ -524,7 +533,7 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
       )),
       body: SingleChildScrollView(
         child: StreamBuilder<List<Widget>>(
-          stream: getNewNotifications(items),
+          stream: getNewNotifications(),
           builder:
               (BuildContext context, AsyncSnapshot<List<Widget>> snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {

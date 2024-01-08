@@ -1,9 +1,9 @@
 import 'dart:async';
+import 'dart:ffi';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:qalam/Pages/cache.dart';
@@ -29,7 +29,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
   int _currentIndex = 0;
   final _pageController = PageController();
   var initConnectivityState;
-  int buildNo = 4000124;
+  int buildNo = 1515;
   bool get wantKeepAlive => true;
 
   final List<Widget> _children = [
@@ -214,7 +214,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
       );
     } else if (kIsWeb) {
       Timer.periodic(
-        Duration(seconds: 10),
+        Duration(seconds: 30),
         (timer) async {
           try {
             getMessages();
@@ -262,6 +262,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
 
     if (request.isNotEmpty) {
       var response = request[0].toJson();
+      response['build'].runtimeType != double;
       if (response['build'] <= buildNo) {
         return;
       }

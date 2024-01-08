@@ -107,6 +107,9 @@ class Renderer extends ChangeNotifier {
       }
 
       for (var postData in postsData) {
+        if (postData.runtimeType == RecordModel) {
+          postData = postData.toJson();
+        }
         if (mode != 'myPosts') {
           var poster = postData['expand']['by'];
           var posterRecord = RecordModel.fromJson(poster);
@@ -115,15 +118,9 @@ class Renderer extends ChangeNotifier {
               user.pb.getFileUrl(posterRecord, poster['avatar']).toString();
           avatar = CachedNetworkImageProvider(avatarUrl);
         }
-        if (mode == 'filter') {
-          postsData.sort((a, b) {
-            int ratioA = a['likes'].length - a['dislikes'].length;
-            int ratioB = b['likes'].length - b['dislikes'].length;
-            return ratioB.compareTo(ratioA);
-          });
-        }
         Widget postWidget =
             await createPostWidget(postData, fullName, avatar, user);
+
         postWidgets.add(postWidget);
       }
       _postsStreamController.add(postWidgets);
@@ -168,7 +165,6 @@ class Renderer extends ChangeNotifier {
           ),
         ]);
       }
-      throw e;
     }
   }
 
@@ -216,7 +212,7 @@ class Renderer extends ChangeNotifier {
           _postsStreamController.add(postWidgets);
           notifyListeners();
         } catch (e) {
-          print('e');
+          print(e);
         }
         break;
     }
@@ -1358,7 +1354,6 @@ class _ShowCommentsState extends State<ShowComments> {
     if (dislikes != null) {
       for (var item in dislikes) {
         var name = item['full_name'];
-        var avatar = item['avatar'];
         var avatarUrl = user.pb
             .getFileUrl(RecordModel.fromJson(item), item['avatar'])
             .toString();
@@ -1528,9 +1523,11 @@ class _ShowCommentsState extends State<ShowComments> {
           body: TabBarView(
             children: [
               commentWidget,
-              Padding(
-                padding: const EdgeInsets.only(bottom: 100.0),
-                child: pagePadding(Column(children: ratings)),
+              SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 100.0),
+                  child: pagePadding(Column(children: ratings)),
+                ),
               )
             ],
           ),

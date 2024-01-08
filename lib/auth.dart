@@ -1,6 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -14,7 +13,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:pocketbase/pocketbase.dart';
 import 'package:provider/provider.dart';
-import 'package:qalam/home.dart';
 import 'user_data.dart';
 import 'styles.dart';
 
@@ -835,7 +833,6 @@ class _PasswordResetState extends State<PasswordReset> {
                                 emailController.text,
                                 passwordController.text,
                                 context);
-                            print(user);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('تم تغيير كلمة السر بنجاح '),

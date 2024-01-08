@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
@@ -65,18 +64,21 @@ class AuthService {
       }
       // Create a User instance
       User user = User(
-          id: authMap['id'],
-          fullName: authMap['full_name'],
-          bio: authMap['about'],
-          isVerified: authMap['is_verified'],
-          avatar: avatar,
-          pb: pb);
+        id: authMap['id'],
+        fullName: authMap['full_name'],
+        bio: authMap['about'],
+        isVerified: authMap['is_verified'],
+        avatar: avatar,
+        pb: pb,
+        emailNotify: authMap['email_notify'],
+      );
 
       await prefs.setString('user_id', user.id);
       await prefs.setString('user_fullName', user.fullName);
       await prefs.setString('user_bio', user.bio);
       await prefs.setString('user_avatarUrl', avatarUrl);
       await prefs.setBool('isVerified', user.isVerified);
+      await prefs.setBool('emailNotify', user.emailNotify);
 
       // Update the User object in the Provider
       Provider.of<User>(context, listen: false).updateUser(user);
@@ -156,6 +158,7 @@ class User extends ChangeNotifier {
   bool isVerified;
   ImageProvider? avatar;
   final PocketBase pb;
+  bool emailNotify;
 
   User(
       {required this.id,
@@ -163,7 +166,8 @@ class User extends ChangeNotifier {
       required this.bio,
       required this.isVerified,
       this.avatar,
-      required this.pb});
+      required this.pb,
+      required this.emailNotify});
 
   void updateUser(User newUser) {
     this.id = newUser.id;
@@ -171,6 +175,7 @@ class User extends ChangeNotifier {
     this.bio = newUser.bio;
     this.isVerified = newUser.isVerified;
     this.avatar = newUser.avatar;
+    this.emailNotify = newUser.emailNotify;
     notifyListeners();
   }
 
@@ -306,5 +311,15 @@ class User extends ChangeNotifier {
     var map = record.toJson();
 
     return map['expand']['friends'];
+  }
+
+  Future emailNotifications(value) async {
+    var data = {"email_notify": value};
+    try {
+      await pb.collection('users').update(this.id, body: data);
+    } catch (e) {
+      print(e);
+    }
+    notifyListeners();
   }
 }

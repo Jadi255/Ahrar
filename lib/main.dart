@@ -40,6 +40,7 @@ void main() async {
       bio: '',
       isVerified: false,
       avatar: null,
+      emailNotify: false,
       pb: authService.pb); // make sure 'user' is your global User instance
   runApp(
     MultiProvider(
@@ -87,7 +88,8 @@ class MyApp extends StatelessWidget {
         pageBuilder: (context, state) {
           return MaterialPage<void>(
             key: state.pageKey,
-            child: Home(authService: authService),
+            child:
+                PopScope(canPop: false, child: Home(authService: authService)),
           );
         },
       ),

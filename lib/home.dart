@@ -29,7 +29,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
   int _currentIndex = 0;
   final _pageController = PageController();
   var initConnectivityState;
-  int buildNo = 100124;
+  int buildNo = 24010008;
   bool get wantKeepAlive => true;
 
   final List<Widget> _children = [
@@ -45,6 +45,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
   void initState() {
     super.initState();
     Future.delayed(Duration.zero, () async {
+      await getAlerts();
       if (kIsWeb) {
         final user = Provider.of<User>(context, listen: false);
         if (user.fullName == "") {
@@ -53,7 +54,6 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
       } else {
         await checkUpdates();
       }
-      await getAlerts();
     });
     getInitConnectivity();
     messagesSubscriber();
@@ -112,6 +112,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
   }
 
   void getMessages() async {
+    if (!mounted) return;
+
     CacheManager().clearMessages();
     final user = Provider.of<User>(context, listen: false);
     final fetcher = Fetcher(pb: user.pb);
@@ -173,7 +175,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
       );
     } else if (kIsWeb) {
       Timer.periodic(
-        Duration(seconds: 10),
+        Duration(seconds: 30),
         (timer) async {
           try {
             getMessages();

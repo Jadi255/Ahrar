@@ -42,7 +42,7 @@ class _AllConversationsState extends State<AllConversations> {
         await fetchMessages();
       });
     } else if (kIsWeb) {
-      Timer.periodic(Duration(seconds: 5), (timer) async {
+      Timer.periodic(Duration(seconds: 15), (timer) async {
         try {
           final cacheManager = CacheManager();
           final messages = await cacheManager.getMessages();
@@ -135,7 +135,6 @@ class _AllConversationsState extends State<AllConversations> {
           msgTime = formatDate(DateTime.parse(message['created']));
         }
       }
-      print(partner);
       var request = RecordModel.fromJson(partner);
       final avatarUrl =
           user.pb.getFileUrl(request, partner['avatar']).toString();
@@ -260,10 +259,12 @@ class _ConversationViewState extends State<ConversationView> {
   @override
   void initState() {
     super.initState();
-    loadMessagesFromCache().then((_) {
-      // Wait for the UI to be rendered then scroll to the bottom
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    Future.delayed(Duration.zero, () async {
+      await loadMessagesFromCache().then((_) {
+        // Wait for the UI to be rendered then scroll to the bottom
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        });
       });
     });
     realTime();
@@ -332,7 +333,7 @@ class _ConversationViewState extends State<ConversationView> {
       );
     } else if (kIsWeb) {
       final fetcher = Fetcher(pb: user.pb);
-      Timer.periodic(Duration(seconds: 5), (timer) async {
+      Timer.periodic(Duration(seconds: 15), (timer) async {
         try {
           final newMessages = await fetcher.fetchMessages(user.id);
           for (var item in newMessages) {

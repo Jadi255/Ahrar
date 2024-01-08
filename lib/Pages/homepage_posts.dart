@@ -131,7 +131,7 @@ class _PublicPostsState extends State<PublicPosts>
   Future loadPosts() async {
     Renderer renderer = Provider.of<Renderer>(context, listen: false);
     renderer.renderPosts(
-        context, widget.user, _currentPage, 7, 'publicAll', 'id', refresh);
+        context, widget.user, _currentPage, 5, 'publicAll', 'id', refresh);
     if (refresh) {
       refresh = false;
     }
@@ -181,41 +181,53 @@ class _PublicPostsState extends State<PublicPosts>
       body: RefreshIndicator(
         color: greenColor,
         onRefresh: _refreshPosts,
-        child: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            return StreamBuilder<List<Widget>>(
-              stream: renderer.postsStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: shimmer);
-                } else if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                } else {
-                  return SingleChildScrollView(
-                    physics: AlwaysScrollableScrollPhysics(),
-                    controller: _scrollController,
-                    child: ConstrainedBox(
-                      constraints:
-                          BoxConstraints(minHeight: constraints.maxHeight),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (_allPosts.isEmpty && !_isLoading)
-                            Center(
-                                child: Text('لا يوجد منشورات',
-                                    style: defaultText)),
-                          Column(
-                            children: _allPosts,
-                          ),
-                          if (_isLoading) Center(child: shimmer)
-                        ],
-                      ),
-                    ),
-                  );
-                }
-              },
-            );
+        child: PopScope(
+          onPopInvoked: (bool success) {
+            if (success) {
+              _scrollController.animateTo(
+                _scrollController.position.minScrollExtent,
+                duration: Duration(milliseconds: 500),
+                curve: Curves.easeOut,
+              );
+            }
           },
+          canPop: false,
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              return StreamBuilder<List<Widget>>(
+                stream: renderer.postsStream,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: shimmer);
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  } else {
+                    return SingleChildScrollView(
+                      physics: AlwaysScrollableScrollPhysics(),
+                      controller: _scrollController,
+                      child: ConstrainedBox(
+                        constraints:
+                            BoxConstraints(minHeight: constraints.maxHeight),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (_allPosts.isEmpty && !_isLoading)
+                              Center(
+                                  child: Text('لا يوجد منشورات',
+                                      style: defaultText)),
+                            Column(
+                              children: _allPosts,
+                            ),
+                            if (_isLoading) Center(child: shimmer)
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -265,7 +277,7 @@ class _FriendsPostsState extends State<FriendsPosts>
   Future loadPosts() async {
     Renderer renderer = Provider.of<Renderer>(context, listen: false);
     renderer.renderPosts(
-        context, widget.user, _currentPage, 7, 'friends', 'id', refresh);
+        context, widget.user, _currentPage, 5, 'friends', 'id', refresh);
     if (refresh) {
       refresh = false;
     }
@@ -315,41 +327,52 @@ class _FriendsPostsState extends State<FriendsPosts>
       body: RefreshIndicator(
         color: greenColor,
         onRefresh: _refreshPosts,
-        child: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            return StreamBuilder<List<Widget>>(
-              stream: renderer.postsStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: shimmer);
-                } else if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                } else {
-                  return SingleChildScrollView(
-                    physics: AlwaysScrollableScrollPhysics(),
-                    controller: _scrollController,
-                    child: ConstrainedBox(
-                      constraints:
-                          BoxConstraints(minHeight: constraints.maxHeight),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (_allPosts.isEmpty && !_isLoading)
-                            Center(
-                                child: Text('لا يوجد منشورات',
-                                    style: defaultText)),
-                          Column(
-                            children: _allPosts,
-                          ),
-                          if (_isLoading) Center(child: shimmer)
-                        ],
-                      ),
-                    ),
-                  );
-                }
-              },
-            );
+        child: PopScope(
+          onPopInvoked: (bool success) {
+            if (success) {
+              _scrollController.animateTo(
+                _scrollController.position.minScrollExtent,
+                duration: Duration(milliseconds: 500),
+                curve: Curves.easeOut,
+              );
+            }
           },
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              return StreamBuilder<List<Widget>>(
+                stream: renderer.postsStream,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: shimmer);
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  } else {
+                    return SingleChildScrollView(
+                      physics: AlwaysScrollableScrollPhysics(),
+                      controller: _scrollController,
+                      child: ConstrainedBox(
+                        constraints:
+                            BoxConstraints(minHeight: constraints.maxHeight),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (_allPosts.isEmpty && !_isLoading)
+                              Center(
+                                  child: Text('لا يوجد منشورات',
+                                      style: defaultText)),
+                            Column(
+                              children: _allPosts,
+                            ),
+                            if (_isLoading) Center(child: shimmer)
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -397,7 +420,7 @@ class _FilterPostsState extends State<FilterPosts> {
   Future loadPosts() async {
     Renderer renderer = Provider.of<Renderer>(context, listen: false);
     renderer.renderPosts(
-        context, widget.user, _currentPage, 7, 'filter', timeRange, refresh);
+        context, widget.user, _currentPage, 5, 'filter', timeRange, refresh);
     if (refresh) {
       refresh = false;
     }
