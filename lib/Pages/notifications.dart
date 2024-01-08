@@ -16,7 +16,8 @@ import 'package:qalam/styles.dart';
 import 'package:qalam/user_data.dart';
 
 class NotificationBell extends StatefulWidget {
-  const NotificationBell({super.key});
+  final bool desktop;
+  const NotificationBell({super.key, required this.desktop});
 
   @override
   State<NotificationBell> createState() => _NotificationBellState();
@@ -44,12 +45,14 @@ class _NotificationBellState extends State<NotificationBell> {
       });
     } else if (kIsWeb) {
       Timer.periodic(
-        Duration(seconds: 15),
+        Duration(seconds: 30),
         (timer) async {
           try {
             await getNotifications();
           } catch (e) {
-            print(e);
+            await Future.delayed(Duration(milliseconds: 1000), () async {
+              await getNotifications();
+            });
           }
         },
       );
@@ -85,8 +88,16 @@ class _NotificationBellState extends State<NotificationBell> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Icon(Icons.notifications),
-          Text('$count'),
+          Row(
+            mainAxisAlignment: widget.desktop
+                ? MainAxisAlignment.spaceAround
+                : MainAxisAlignment.spaceBetween,
+            children: [
+              const Icon(Icons.notifications),
+              Text('$count'),
+            ],
+          ),
+          if (widget.desktop) Text('الإشعارات', style: defaultText)
         ],
       ),
       onPressed: () {
@@ -98,7 +109,7 @@ class _NotificationBellState extends State<NotificationBell> {
               return ChangeNotifierProvider(
                 create: (context) =>
                     Renderer(fetcher: Fetcher(pb: user.pb), pb: user.pb),
-                child: NotificationsMenu(data: notificationData),
+                child: NotificationsMenu(),
               );
             });
 
@@ -112,8 +123,7 @@ class _NotificationBellState extends State<NotificationBell> {
 }
 
 class NotificationsMenu extends StatefulWidget {
-  final data;
-  NotificationsMenu({super.key, required this.data});
+  NotificationsMenu({super.key});
 
   @override
   State<NotificationsMenu> createState() => _NotificationsMenuState();
@@ -124,7 +134,6 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
   @override
   void initState() {
     super.initState();
-    items = widget.data;
   }
 
   String formatDate(DateTime date) {
@@ -141,9 +150,17 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
     }
   }
 
-  Stream<List<Widget>> getNewNotifications(items) async* {
+  Stream<List<Widget>> getNewNotifications() async* {
     final user = Provider.of<User>(context, listen: false);
     Fetcher fetcher = Fetcher(pb: user.pb);
+    var items;
+    try {
+      items = await fetcher.getNotifications(user.id);
+    } catch (e) {
+      await Future.delayed(Duration(milliseconds: 500), () async {
+        items = await fetcher.getNotifications(user.id);
+      });
+    }
     List<Widget> widgets = [];
     if (items.length == 0) {
       widgets.add(
@@ -180,6 +197,9 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
               child: pagePadding(
                 ListTile(
                   onTap: () async {
+                    Writer writer = Writer(pb: user.pb);
+                    writer.markNotificationRead(notification['id']);
+
                     showDialog(
                       context: context,
                       builder: (context) {
@@ -256,8 +276,6 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                         );
                       },
                     );
-                    Writer writer = Writer(pb: user.pb);
-                    writer.markNotificationRead(notification['id']);
                   },
                   leading: CircleAvatar(
                     radius: 25,
@@ -437,6 +455,7 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
             fetcher.markAsRead(notification['id']);
           } catch (e) {
             user.pb.collection('notifications').delete(notification['id']);
+            return;
           }
           break;
         case 'message':
@@ -463,10 +482,11 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
                         PageRouteBuilder(
                           pageBuilder:
                               (context, animation, secondaryAnimation) =>
-                                  ConversationView(
-                                      name: sender['full_name'],
-                                      id: sender['id'],
-                                      avatar: avatarUrl),
+                                  Scaffold(
+                                      appBar: AppBar(
+                                        automaticallyImplyLeading: true,
+                                      ),
+                                      body: AllConversations(desktop: false)),
                           transitionsBuilder:
                               (context, animation, secondaryAnimation, child) {
                             var begin = Offset(1.0, 0.0);
@@ -524,13 +544,494 @@ class _NotificationsMenuState extends State<NotificationsMenu> {
       )),
       body: SingleChildScrollView(
         child: StreamBuilder<List<Widget>>(
-          stream: getNewNotifications(items),
+          stream: getNewNotifications(),
           builder:
               (BuildContext context, AsyncSnapshot<List<Widget>> snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: shimmer); // or your custom loader
             } else if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
+              return Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error,
+                      color: Colors.black,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                      child: Text(
+                        'نعتذر، حدث خطأ ما\nالرجاء المحاولة في وقت لاحق',
+                        style: defaultText,
+                        textDirection: TextDirection.rtl,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              return Column(
+                children: [
+                  pagePadding(
+                    Column(
+                      children: snapshot.data!,
+                    ),
+                  ),
+                  Visibility(
+                    child: Center(child: CupertinoActivityIndicator()),
+                    visible: (snapshot.connectionState != ConnectionState.done),
+                  )
+                ],
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class NotificationsMenuDesktop extends StatefulWidget {
+  const NotificationsMenuDesktop({super.key});
+
+  @override
+  State<NotificationsMenuDesktop> createState() =>
+      _NotificationsMenuDesktopState();
+}
+
+class _NotificationsMenuDesktopState extends State<NotificationsMenuDesktop> {
+  var items;
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  String formatDate(DateTime date) {
+    date = date.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final aDate = DateTime(date.year, date.month, date.day);
+    var hour = date.hour;
+    var minutes = date.minute;
+    if (aDate == today) {
+      return '${hour.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+    } else {
+      return '${aDate.day}/${aDate.month}\n${hour.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+    }
+  }
+
+  Stream<List<Widget>> getNewNotifications() async* {
+    final user = Provider.of<User>(context, listen: false);
+    Fetcher fetcher = Fetcher(pb: user.pb);
+    var items;
+    try {
+      items = await fetcher.getNotifications(user.id);
+    } catch (e) {
+      await Future.delayed(Duration(milliseconds: 500), () async {
+        items = await fetcher.getNotifications(user.id);
+      });
+    }
+    List<Widget> widgets = [];
+    if (items.length == 0) {
+      widgets.add(
+        Center(
+          child: Text('لا يوجد اشعارات', style: defaultText),
+        ),
+      );
+      yield widgets;
+      return;
+    }
+
+    for (var item in items) {
+      var notification = item.toJson();
+      var color = notification['seen'] ? Colors.white : Colors.green[50];
+      var type = notification['type'];
+      var msgTime = formatDate(DateTime.parse(notification['created']));
+
+      switch (type) {
+        case 'request':
+          try {
+            var sender = notification['expand']['linked_user'];
+            if (sender == null) {
+              user.pb.collection('notifications').delete(notification['id']);
+              break;
+            }
+            var record = RecordModel.fromJson(sender);
+            final avatarUrl =
+                user.pb.getFileUrl(record, sender['avatar']).toString();
+
+            Widget notificationCard = Card(
+              color: color,
+              surfaceTintColor: color,
+              elevation: 0.5,
+              child: pagePadding(
+                ListTile(
+                  onTap: () async {
+                    Writer writer = Writer(pb: user.pb);
+                    writer.markNotificationRead(notification['id']);
+
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return Directionality(
+                          textDirection: TextDirection.rtl,
+                          child: AlertDialog(
+                              backgroundColor: Colors.white,
+                              surfaceTintColor: Colors.white,
+                              content: Text(
+                                  'أرسل لك المستخدم ${sender['full_name']} طلب صداقة',
+                                  style: defaultText),
+                              actions: [
+                                TextButton(
+                                  style: ButtonStyle(
+                                      foregroundColor:
+                                          MaterialStatePropertyAll(blackColor)),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      PageRouteBuilder(
+                                        pageBuilder: (context, animation,
+                                                secondaryAnimation) =>
+                                            UserProfile(
+                                                id: sender['id'],
+                                                fullName: sender['full_name']),
+                                        transitionsBuilder: (context, animation,
+                                            secondaryAnimation, child) {
+                                          var begin = Offset(1.0, 0.0);
+                                          var end = Offset.zero;
+                                          var curve = Curves.ease;
+
+                                          var tween = Tween(
+                                                  begin: begin, end: end)
+                                              .chain(CurveTween(curve: curve));
+
+                                          return SlideTransition(
+                                            position: animation.drive(tween),
+                                            child: child,
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  },
+                                  child: Text('عرض الصفحة الشخصية'),
+                                ),
+                                TextButton(
+                                  style: ButtonStyle(
+                                      foregroundColor:
+                                          MaterialStatePropertyAll(greenColor)),
+                                  onPressed: () async {
+                                    fetcher.acceptRequest(
+                                        user.id,
+                                        notification['linked_id'],
+                                        notification['id']);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('تم قبول طلب الصداقة'),
+                                      ),
+                                    );
+                                  },
+                                  child: Text('قبول'),
+                                ),
+                                TextButton(
+                                  style: ButtonStyle(
+                                      foregroundColor:
+                                          MaterialStatePropertyAll(redColor)),
+                                  onPressed: () async {
+                                    fetcher.ignoreRequest(notification['id']);
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text('تجاهل'),
+                                ),
+                              ]),
+                        );
+                      },
+                    );
+                  },
+                  leading: CircleAvatar(
+                    radius: 25,
+                    backgroundColor: Colors.grey.shade100,
+                    foregroundImage: CachedNetworkImageProvider(avatarUrl),
+                    backgroundImage:
+                        Image.asset('assets/placeholder.jpg').image,
+                  ),
+                  title: Text(
+                    'طلب صداقة',
+                    style: defaultText,
+                    textDirection: TextDirection.rtl,
+                  ),
+                  subtitle: Text(
+                      'أرسل لك المستخدم ${sender['full_name']} طلب صداقة',
+                      textDirection: TextDirection.rtl),
+                  trailing: Text(
+                    msgTime,
+                    textAlign: TextAlign.center,
+                    textScaler: TextScaler.linear(0.75),
+                  ),
+                ),
+              ),
+            );
+
+            widgets.add(Transform.scale(scale: 0.75, child: notificationCard));
+          } catch (e) {
+            user.pb.collection('notifications').delete(notification['id']);
+          }
+          break;
+        case 'alert':
+          try {
+            var sender = notification['expand']['linked_user'];
+            if (sender == null) {
+              user.pb.collection('notifications').delete(notification['id']);
+              break;
+            }
+
+            var record = RecordModel.fromJson(sender);
+            final avatarUrl =
+                user.pb.getFileUrl(record, sender['avatar']).toString();
+
+            Widget notificationCard = Card(
+              color: color,
+              surfaceTintColor: color,
+              elevation: 0.5,
+              child: pagePadding(
+                ListTile(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            UserProfile(
+                                id: sender['id'],
+                                fullName: sender['full_name']),
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                          var begin = Offset(1.0, 0.0);
+                          var end = Offset.zero;
+                          var curve = Curves.ease;
+
+                          var tween = Tween(begin: begin, end: end)
+                              .chain(CurveTween(curve: curve));
+
+                          return SlideTransition(
+                            position: animation.drive(tween),
+                            child: child,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  leading: CircleAvatar(
+                    radius: 25,
+                    backgroundColor: Colors.grey.shade100,
+                    foregroundImage: CachedNetworkImageProvider(avatarUrl),
+                    backgroundImage:
+                        Image.asset('assets/placeholder.jpg').image,
+                  ),
+                  title: Text(
+                    'قبل المستخدم ${sender['full_name']} طلب صداقتك',
+                    style: defaultText,
+                    textDirection: TextDirection.rtl,
+                  ),
+                  trailing: Text(
+                    msgTime,
+                    textAlign: TextAlign.center,
+                    textScaler: TextScaler.linear(0.75),
+                  ),
+                ),
+              ),
+            );
+
+            widgets.add(notificationCard);
+            fetcher.markAsRead(notification['id']);
+          } catch (e) {
+            user.pb.collection('notifications').delete(notification['id']);
+          }
+          break;
+        case 'comment':
+          var post =
+              notification['expand']['linked_comment']['expand']['post']['id'];
+          if (post == null) {
+            user.pb.collection('notifications').delete(notification['id']);
+            break;
+          }
+          try {
+            var sender =
+                notification['expand']['linked_comment']['expand']['by'];
+            if (sender == null) {
+              user.pb.collection('notifications').delete(notification['id']);
+              break;
+            }
+
+            var record = RecordModel.fromJson(sender);
+            final avatarUrl =
+                user.pb.getFileUrl(record, sender['avatar']).toString();
+
+            Widget notificationCard = Card(
+              color: color,
+              surfaceTintColor: color,
+              elevation: 0.5,
+              child: pagePadding(
+                ListTile(
+                  onTap: () async {
+                    Writer writer = Writer(pb: user.pb);
+                    writer.markNotificationRead(notification['id']);
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            ChangeNotifierProvider(
+                          create: (context) => Renderer(
+                              fetcher: Fetcher(pb: user.pb), pb: user.pb),
+                          child: ShowFullPost(post: post),
+                        ),
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                          var begin = Offset(1.0, 0.0);
+                          var end = Offset.zero;
+                          var curve = Curves.ease;
+
+                          var tween = Tween(begin: begin, end: end)
+                              .chain(CurveTween(curve: curve));
+
+                          return SlideTransition(
+                            position: animation.drive(tween),
+                            child: child,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  leading: CircleAvatar(
+                    radius: 25,
+                    backgroundColor: Colors.grey.shade100,
+                    foregroundImage: CachedNetworkImageProvider(avatarUrl),
+                    backgroundImage:
+                        Image.asset('assets/placeholder.jpg').image,
+                  ),
+                  title: Text('تعليق جديد',
+                      style: defaultText, textDirection: TextDirection.rtl),
+                  subtitle: Text(
+                      'علق المستخدم ${sender['full_name']} على منشور تتابعه',
+                      textDirection: TextDirection.rtl),
+                  trailing: Text(
+                    msgTime,
+                    textAlign: TextAlign.center,
+                    textScaler: TextScaler.linear(0.75),
+                  ),
+                ),
+              ),
+            );
+
+            widgets.add(notificationCard);
+            fetcher.markAsRead(notification['id']);
+          } catch (e) {
+            user.pb.collection('notifications').delete(notification['id']);
+            return;
+          }
+          break;
+        case 'message':
+          try {
+            var sender = notification['expand']['linked_user'];
+            if (sender == null) {
+              user.pb.collection('notifications').delete(notification['id']);
+              break;
+            }
+
+            var record = RecordModel.fromJson(sender);
+            final avatarUrl =
+                user.pb.getFileUrl(record, sender['avatar']).toString();
+            widgets.add(
+              Card(
+                color: color,
+                surfaceTintColor: color,
+                elevation: 0.5,
+                child: pagePadding(
+                  ListTile(
+                    onTap: () async {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder:
+                              (context, animation, secondaryAnimation) =>
+                                  Scaffold(
+                                      appBar: AppBar(
+                                        automaticallyImplyLeading: true,
+                                      ),
+                                      body: AllConversations(desktop: true)),
+                          transitionsBuilder:
+                              (context, animation, secondaryAnimation, child) {
+                            var begin = Offset(1.0, 0.0);
+                            var end = Offset.zero;
+                            var curve = Curves.ease;
+
+                            var tween = Tween(begin: begin, end: end)
+                                .chain(CurveTween(curve: curve));
+
+                            return SlideTransition(
+                              position: animation.drive(tween),
+                              child: child,
+                            );
+                          },
+                        ),
+                      );
+                    },
+                    leading: CircleAvatar(
+                      radius: 25,
+                      backgroundColor: Colors.grey.shade100,
+                      foregroundImage: CachedNetworkImageProvider(avatarUrl),
+                      backgroundImage:
+                          Image.asset('assets/placeholder.jpg').image,
+                    ),
+                    title: Text('لديك رسالة جديدة من ${sender['full_name']}',
+                        style: defaultText, textDirection: TextDirection.rtl),
+                    trailing: Text(
+                      msgTime,
+                      textAlign: TextAlign.center,
+                      textScaler: TextScaler.linear(0.75),
+                    ),
+                  ),
+                ),
+              ),
+            );
+            fetcher.markAsRead(notification['id']);
+          } catch (e) {
+            print(e);
+          }
+          break;
+      }
+      yield widgets;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SingleChildScrollView(
+        child: StreamBuilder<List<Widget>>(
+          stream: getNewNotifications(),
+          builder:
+              (BuildContext context, AsyncSnapshot<List<Widget>> snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: shimmer); // or your custom loader
+            } else if (snapshot.hasError) {
+              return Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error,
+                      color: Colors.black,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                      child: Text(
+                        'نعتذر، حدث خطأ ما\nالرجاء المحاولة في وقت لاحق',
+                        style: defaultText,
+                        textDirection: TextDirection.rtl,
+                      ),
+                    ),
+                  ],
+                ),
+              );
             } else {
               return Column(
                 children: [

@@ -48,7 +48,7 @@ class _MyProfileState extends State<MyProfile> {
                   visible: !widget.isLeading,
                   child: IconButton(
                     onPressed: () {
-                      showBottomSheet(
+                      showModalBottomSheet(
                         enableDrag: false,
                         context: context,
                         builder: (context) {

@@ -1,4 +1,6 @@
 import 'package:pocketbase/pocketbase.dart';
+import 'package:provider/provider.dart';
+import 'package:qalam/user_data.dart';
 
 class Writer {
   final PocketBase pb;
@@ -243,5 +245,21 @@ class Writer {
 
     /*
      */
+  }
+
+  Future likeComment(comment, user) async {
+    print(comment);
+
+    await pb
+        .collection('circle_comments')
+        .update(comment, body: {'likes+': user});
+  }
+
+  Future unlikeComment(comment, user) async {
+    print(comment);
+
+    await pb
+        .collection('circle_comments')
+        .update(comment, body: {'likes-': user});
   }
 }

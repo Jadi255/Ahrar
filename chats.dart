@@ -47,7 +47,7 @@ class _AllConversationsState extends State<AllConversations>
         await fetchMessages();
       });
     } else if (kIsWeb) {
-      Timer.periodic(Duration(seconds: 5), (timer) async {
+      Timer.periodic(Duration(seconds: 15), (timer) async {
         try {
           final cacheManager = CacheManager();
           final messages = await cacheManager.getMessages();
@@ -331,7 +331,7 @@ class _ConversationViewState extends State<ConversationView> {
       );
     } else if (kIsWeb) {
       final fetcher = Fetcher(pb: user.pb);
-      Timer.periodic(Duration(seconds: 5), (timer) async {
+      Timer.periodic(Duration(seconds: 15), (timer) async {
         try {
           final newMessages = await fetcher.fetchMessages(user.id);
           for (var item in newMessages) {
@@ -383,7 +383,7 @@ class _ConversationViewState extends State<ConversationView> {
             }
           }
         } catch (e) {
-          print('No new messages');
+          print(e);
         }
       });
     }

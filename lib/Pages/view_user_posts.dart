@@ -14,7 +14,6 @@ class ViewUserPosts extends StatefulWidget {
 }
 
 class _ViewUserPostsState extends State<ViewUserPosts> {
-  late Renderer _renderer;
   ScrollController _scrollController = ScrollController();
   int _currentPage = 1;
   List<Widget> _allPosts = [];

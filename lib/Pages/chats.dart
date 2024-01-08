@@ -15,7 +15,8 @@ import 'package:qalam/styles.dart';
 import 'package:qalam/user_data.dart';
 
 class AllConversations extends StatefulWidget {
-  const AllConversations({super.key});
+  final bool desktop;
+  const AllConversations({super.key, required this.desktop});
 
   @override
   State<AllConversations> createState() => _AllConversationsState();
@@ -42,7 +43,7 @@ class _AllConversationsState extends State<AllConversations> {
         await fetchMessages();
       });
     } else if (kIsWeb) {
-      Timer.periodic(Duration(seconds: 5), (timer) async {
+      Timer.periodic(Duration(seconds: 15), (timer) async {
         try {
           final cacheManager = CacheManager();
           final messages = await cacheManager.getMessages();
@@ -135,7 +136,6 @@ class _AllConversationsState extends State<AllConversations> {
           msgTime = formatDate(DateTime.parse(message['created']));
         }
       }
-      print(partner);
       var request = RecordModel.fromJson(partner);
       final avatarUrl =
           user.pb.getFileUrl(request, partner['avatar']).toString();
@@ -147,31 +147,43 @@ class _AllConversationsState extends State<AllConversations> {
             padding: const EdgeInsets.all(10.0),
             child: ListTile(
               onTap: () {
-                Navigator.push(
-                  context,
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) =>
-                        ConversationView(
-                      id: partner['id'],
-                      name: partner['full_name'],
-                      avatar: avatarUrl,
+                if (widget.desktop) {
+                  showModalBottomSheet(
+                      context: context,
+                      builder: (context) {
+                        return ConversationView(
+                          id: partner['id'],
+                          name: partner['full_name'],
+                          avatar: avatarUrl,
+                        );
+                      });
+                } else {
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          ConversationView(
+                        id: partner['id'],
+                        name: partner['full_name'],
+                        avatar: avatarUrl,
+                      ),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                        var begin = Offset(1.0, 0.0);
+                        var end = Offset.zero;
+                        var curve = Curves.ease;
+
+                        var tween = Tween(begin: begin, end: end)
+                            .chain(CurveTween(curve: curve));
+
+                        return SlideTransition(
+                          position: animation.drive(tween),
+                          child: child,
+                        );
+                      },
                     ),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                      var begin = Offset(1.0, 0.0);
-                      var end = Offset.zero;
-                      var curve = Curves.ease;
-
-                      var tween = Tween(begin: begin, end: end)
-                          .chain(CurveTween(curve: curve));
-
-                      return SlideTransition(
-                        position: animation.drive(tween),
-                        child: child,
-                      );
-                    },
-                  ),
-                );
+                  );
+                }
               },
               leading: CircleAvatar(
                 radius: 25,
@@ -260,10 +272,12 @@ class _ConversationViewState extends State<ConversationView> {
   @override
   void initState() {
     super.initState();
-    loadMessagesFromCache().then((_) {
-      // Wait for the UI to be rendered then scroll to the bottom
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    Future.delayed(Duration.zero, () async {
+      await loadMessagesFromCache().then((_) {
+        // Wait for the UI to be rendered then scroll to the bottom
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        });
       });
     });
     realTime();
@@ -332,7 +346,7 @@ class _ConversationViewState extends State<ConversationView> {
       );
     } else if (kIsWeb) {
       final fetcher = Fetcher(pb: user.pb);
-      Timer.periodic(Duration(seconds: 5), (timer) async {
+      Timer.periodic(Duration(seconds: 15), (timer) async {
         try {
           final newMessages = await fetcher.fetchMessages(user.id);
           for (var item in newMessages) {

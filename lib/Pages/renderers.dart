@@ -107,6 +107,9 @@ class Renderer extends ChangeNotifier {
       }
 
       for (var postData in postsData) {
+        if (postData.runtimeType == RecordModel) {
+          postData = postData.toJson();
+        }
         if (mode != 'myPosts') {
           var poster = postData['expand']['by'];
           var posterRecord = RecordModel.fromJson(poster);
@@ -115,15 +118,9 @@ class Renderer extends ChangeNotifier {
               user.pb.getFileUrl(posterRecord, poster['avatar']).toString();
           avatar = CachedNetworkImageProvider(avatarUrl);
         }
-        if (mode == 'filter') {
-          postsData.sort((a, b) {
-            int ratioA = a['likes'].length - a['dislikes'].length;
-            int ratioB = b['likes'].length - b['dislikes'].length;
-            return ratioB.compareTo(ratioA);
-          });
-        }
         Widget postWidget =
             await createPostWidget(postData, fullName, avatar, user);
+
         postWidgets.add(postWidget);
       }
       _postsStreamController.add(postWidgets);
@@ -168,7 +165,6 @@ class Renderer extends ChangeNotifier {
           ),
         ]);
       }
-      throw e;
     }
   }
 
@@ -216,7 +212,7 @@ class Renderer extends ChangeNotifier {
           _postsStreamController.add(postWidgets);
           notifyListeners();
         } catch (e) {
-          print('e');
+          print(e);
         }
         break;
     }
@@ -257,6 +253,7 @@ class Renderer extends ChangeNotifier {
     }
 
     Widget imageView = Container();
+    List<Widget> imageUrls = [];
     var postTime = timeAgo(DateTime.parse(post['created']).toLocal());
     if (post['pictures'].isNotEmpty) {
       var pictures = post['pictures'];
@@ -274,6 +271,10 @@ class Renderer extends ChangeNotifier {
         }
         var url =
             '${pb.getFileUrl(record, picture)}?token=${pb.authStore.token}';
+        imageUrls.add(Image(
+          image: CachedNetworkImageProvider(url),
+        ));
+
         images.add(Builder(builder: (context) {
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 5.0),
@@ -291,10 +292,29 @@ class Renderer extends ChangeNotifier {
                           onTap: () {
                             Navigator.of(context).pop();
                           },
-                          child: InteractiveViewer(
-                              child: Image(
-                            image: CachedNetworkImageProvider(url),
-                          )),
+                          child: Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: images.length > 1
+                                ? Center(
+                                    child: InteractiveViewer(
+                                      child: CarouselSlider(
+                                          disableGesture: true,
+                                          options: CarouselOptions(
+                                            height: double.maxFinite,
+                                            enlargeCenterPage: true,
+                                            pageSnapping: true,
+                                          ),
+                                          items: imageUrls),
+                                    ),
+                                  )
+                                : InteractiveViewer(
+                                    child: Image(
+                                      width: double.maxFinite,
+                                      height: double.maxFinite,
+                                      image: CachedNetworkImageProvider(url),
+                                    ),
+                                  ),
+                          ),
                         );
                       });
                 },
@@ -951,6 +971,17 @@ class Renderer extends ChangeNotifier {
       ),
     );
 
+    var likes = post['likes'];
+    var count = likes.length;
+    var isLiked = post['likes'].contains(user.id);
+
+    var isLikedBtn =
+        AnimatedIconItem(icon: Icon(Icons.favorite, color: redColor));
+    var notLikedBtn = AnimatedIconItem(
+        icon: Icon(Icons.favorite_border_outlined, color: blackColor));
+
+    AnimatedIconItem likeBtn = isLiked ? isLikedBtn : notLikedBtn;
+
     return Consumer<Renderer>(
       builder: (context, renderer, child) {
         return Card(
@@ -972,6 +1003,44 @@ class Renderer extends ChangeNotifier {
                   child: SelectableText(post['comment']),
                 ),
               ),
+              Padding(
+                padding: const EdgeInsets.only(right: 20.0, bottom: 20, top: 5),
+                child: Container(
+                  width: double.maxFinite,
+                  child: Transform.scale(
+                    scale: 0.85,
+                    child: StatefulBuilder(builder: (context, setState) {
+                      final writer = Writer(pb: user.pb);
+                      return Row(
+                        children: [
+                          AnimatedIconButton(
+                            onPressed: () {
+                              setState(() {
+                                if (!isLiked) {
+                                  likeBtn = isLikedBtn;
+                                  count = count + 1;
+                                  isLiked = !isLiked;
+                                  writer.likeComment(post['id'], user.id);
+                                } else if (isLiked) {
+                                  likeBtn = notLikedBtn;
+                                  count = count - 1;
+                                  isLiked = !isLiked;
+                                  writer.unlikeComment(post['id'], user.id);
+                                }
+                              });
+                            },
+                            hoverColor: Colors.white,
+                            focusColor: Colors.white,
+                            highlightColor: Colors.white,
+                            icons: [likeBtn],
+                          ),
+                          Text(count.toString()),
+                        ],
+                      );
+                    }),
+                  ),
+                ),
+              )
             ],
           ),
         );
@@ -1358,7 +1427,6 @@ class _ShowCommentsState extends State<ShowComments> {
     if (dislikes != null) {
       for (var item in dislikes) {
         var name = item['full_name'];
-        var avatar = item['avatar'];
         var avatarUrl = user.pb
             .getFileUrl(RecordModel.fromJson(item), item['avatar'])
             .toString();
@@ -1528,9 +1596,11 @@ class _ShowCommentsState extends State<ShowComments> {
           body: TabBarView(
             children: [
               commentWidget,
-              Padding(
-                padding: const EdgeInsets.only(bottom: 100.0),
-                child: pagePadding(Column(children: ratings)),
+              SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 100.0),
+                  child: pagePadding(Column(children: ratings)),
+                ),
               )
             ],
           ),

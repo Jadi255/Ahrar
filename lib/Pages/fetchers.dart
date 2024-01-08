@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:intl/intl.dart';
 import 'package:pocketbase/pocketbase.dart';
@@ -15,145 +14,200 @@ class Fetcher {
   Fetcher({required this.pb});
 
   Future getUserPosts(context, id, pb, page, perPage) async {
-    final request = await pb.collection('circle_posts').getList(
-        page: page,
-        perPage: perPage,
-        expand: "by,comments.by, likes, dislikes",
-        filter: 'by.id = "$id"',
-        sort: '-created');
+    try {
+      final request = await pb.collection('circle_posts').getList(
+          page: page,
+          perPage: perPage,
+          expand: "by,comments.by, likes, dislikes",
+          filter: 'by.id = "$id"',
+          sort: '-created');
 
-    var response = request.toJson();
-    var posts = response['items'];
-    return posts;
+      var response = request.toJson();
+      var posts = response['items'];
+      return posts;
+    } catch (e) {
+      Future.delayed(Duration(seconds: 3), () async {
+        getUserPosts(context, id, pb, page, perPage);
+      });
+    }
   }
 
   Future getProfilePosts(id, page, perPage) async {
-    final request = await pb.collection('circle_posts').getList(
-        page: page,
-        perPage: perPage,
-        expand: "by,comments.by, likes, dislikes",
-        filter: 'by.id = "$id"',
-        sort: '-created');
+    try {
+      final request = await pb.collection('circle_posts').getList(
+          page: page,
+          perPage: perPage,
+          expand: "by,comments.by, likes, dislikes",
+          filter: 'by.id = "$id"',
+          sort: '-created');
 
-    var response = request.toJson();
-    var posts = response['items'];
-    return posts;
+      var response = request.toJson();
+      var posts = response['items'];
+      return posts;
+    } catch (e) {
+      Future.delayed(Duration(seconds: 2), () async {
+        getProfilePosts(id, page, perPage);
+      });
+    }
   }
 
   Future getTopicPosts(topic, page, perPage) async {
-    final request = await pb.collection('circle_posts').getList(
-        page: page,
-        perPage: perPage,
-        expand: "by,comments.by, likes, dislikes",
-        filter: 'topic.id ?= "$topic"',
-        sort: '-created');
-    var response = request.toJson();
-    var posts = response['items'];
-    return posts;
+    try {
+      final request = await pb.collection('circle_posts').getList(
+          page: page,
+          perPage: perPage,
+          expand: "by,comments.by, likes, dislikes",
+          filter: 'topic.id ?= "$topic"',
+          sort: '-created');
+      var response = request.toJson();
+      var posts = response['items'];
+      return posts;
+    } catch (e) {
+      Future.delayed(Duration(seconds: 2), () async {
+        getTopicPosts(topic, page, perPage);
+      });
+    }
   }
 
   Future fetchTopics() async {
-    topics.clear();
-    topicIDs.clear();
-    final records = await pb.collection('topics').getFullList(sort: '-created');
-    for (var record in records) {
-      var topic = record.toJson();
-      topics.add(topic['topic']);
-      topicIDs.add(topic['id']);
+    try {
+      topics.clear();
+      topicIDs.clear();
+      final records =
+          await pb.collection('topics').getFullList(sort: '-created');
+      for (var record in records) {
+        var topic = record.toJson();
+        topics.add(topic['topic']);
+        topicIDs.add(topic['id']);
+      }
+    } catch (e) {
+      Future.delayed(Duration(seconds: 2), () async {
+        fetchTopics();
+      });
     }
   }
 
   Future fetchTopic(String topicID) async {
-    var request = await pb.collection('topics').getOne(topicID);
-    var response = request.toJson();
+    try {
+      var request = await pb.collection('topics').getOne(topicID);
+      var response = request.toJson();
 
-    String topic = response['topic'];
-    return topic;
+      String topic = response['topic'];
+      return topic;
+    } catch (e) {
+      Future.delayed(Duration(seconds: 2), () async {
+        fetchTopic(topicID);
+      });
+    }
   }
 
   Future fetchComments(String id) async {
-    var comments = await pb.collection('circle_comments').getFullList(
-          filter: 'post.id = "$id"',
-          expand: 'by',
-        );
-    return comments;
+    try {
+      var comments = await pb.collection('circle_comments').getFullList(
+            filter: 'post.id = "$id"',
+            expand: 'by',
+          );
+      return comments;
+    } catch (e) {
+      Future.delayed(Duration(seconds: 2), () async {
+        fetchComments(id);
+      });
+    }
   }
 
   Future getPublicPosts(context, pb, page, perPage) async {
-    final request = await pb.collection('circle_posts').getList(
-          page: page,
-          perPage: perPage,
-          expand: "by,comments.by, likes, dislikes",
-          filter: 'is_public = true',
-          sort: '-created',
-        );
+    try {
+      final request = await pb.collection('circle_posts').getList(
+            page: page,
+            perPage: perPage,
+            expand: "by,comments.by, likes, dislikes",
+            filter: 'is_public = true',
+            sort: '-created',
+          );
 
-    var response = request.toJson();
-    var posts = response['items'];
-    return posts;
+      var response = request.toJson();
+      var posts = response['items'];
+      return posts;
+    } catch (e) {
+      Future.delayed(Duration(seconds: 1), () async {
+        getPublicPosts(context, pb, page, perPage);
+      });
+    }
   }
 
   Future getFilteredPosts(context, pb, page, perPage, filter) async {
-    String pbFilter = '';
-    String pbSort = '-likes:length';
-    DateTime now = DateTime.now();
-    if (filter == 'all') {
-      final request = await pb.collection('circle_posts').getList(
-            page: page,
-            perPage: perPage,
-            expand: "by,comments.by, likes, dislikes",
-            sort: pbSort,
-          );
-      var response = request.toJson();
-      var posts = response['items'];
-      return posts;
-    } else {
-      DateTime startDate;
-      switch (filter) {
-        case 'today':
-          startDate = DateTime(now.year, now.month, now.day);
-          break;
-        case 'week':
-          startDate = now.subtract(Duration(days: 7));
-          break;
-        case 'month':
-          startDate = DateTime(now.year, now.month - 1, now.day);
-          break;
-        case 'year':
-          startDate = DateTime(now.year - 1, now.month, now.day);
-          break;
-        default:
-          startDate = DateTime.now();
-      }
+    try {
+      String pbFilter = '';
+      String pbSort = '-likes:length';
+      DateTime now = DateTime.now();
+      if (filter == 'all') {
+        final request = await pb.collection('circle_posts').getList(
+              page: page,
+              perPage: perPage,
+              expand: "by,comments.by, likes, dislikes",
+              sort: pbSort,
+            );
+        var response = request.toJson();
+        var posts = response['items'];
+        return posts;
+      } else {
+        DateTime startDate;
+        switch (filter) {
+          case 'today':
+            startDate = DateTime(now.year, now.month, now.day);
+            break;
+          case 'week':
+            startDate = now.subtract(Duration(days: 7));
+            break;
+          case 'month':
+            startDate = DateTime(now.year, now.month - 1, now.day);
+            break;
+          case 'year':
+            startDate = DateTime(now.year - 1, now.month, now.day);
+            break;
+          default:
+            startDate = DateTime.now();
+        }
 
-      String formattedStartDate =
-          DateFormat('yyyy-MM-dd HH:mm:ss').format(startDate);
-      pbFilter += 'created >= "$formattedStartDate"';
-      final request = await pb.collection('circle_posts').getList(
-            page: page,
-            perPage: perPage,
-            filter: pbFilter,
-            sort: pbSort,
-            expand: "by,comments.by, likes, dislikes",
-          );
-      var response = request.toJson();
-      var posts = response['items'];
-      return posts;
+        String formattedStartDate =
+            DateFormat('yyyy-MM-dd HH:mm:ss').format(startDate);
+        pbFilter += 'created >= "$formattedStartDate"';
+        final request = await pb.collection('circle_posts').getList(
+              page: page,
+              perPage: perPage,
+              filter: pbFilter,
+              sort: pbSort,
+              expand: "by,comments.by, likes, dislikes",
+            );
+        var response = request.toJson();
+        var posts = response['items'];
+        return posts;
+      }
+    } catch (e) {
+      Future.delayed(Duration(seconds: 5), () async {
+        getFilteredPosts(context, pb, page, perPage, filter);
+      });
     }
   }
 
   Future getFriendsPosts(context, pb, page, perPage) async {
-    final request = await pb.collection('circle_posts').getList(
-          page: page,
-          perPage: perPage,
-          expand: "by,comments.by, likes, dislikes",
-          filter: 'is_public = false',
-          sort: '-created',
-        );
+    try {
+      final request = await pb.collection('circle_posts').getList(
+            page: page,
+            perPage: perPage,
+            expand: "by,comments.by, likes, dislikes",
+            filter: 'is_public = false',
+            sort: '-created',
+          );
 
-    var response = request.toJson();
-    var posts = response['items'];
-    return posts;
+      var response = request.toJson();
+      var posts = response['items'];
+      return posts;
+    } catch (e) {
+      Future.delayed(Duration(seconds: 1), () async {
+        getFriendsPosts(context, pb, page, perPage);
+      });
+    }
   }
 
   Future postSubscriber(context) async {
@@ -170,40 +224,88 @@ class Fetcher {
   }
 
   Future getUser(user) async {
-    var request = await pb.collection('users').getOne(user);
+    try {
+      var request = await pb.collection('users').getOne(user);
 
-    return request;
+      return request;
+    } catch (e) {
+      Future.delayed(Duration(seconds: 2), () async {
+        getUser(user);
+      });
+    }
   }
 
   Future searchUsers(user) async {
-    final request =
-        await pb.collection('users').getList(filter: 'full_name ?~ "$user"');
-    return request.items;
+    try {
+      final request =
+          await pb.collection('users').getList(filter: 'full_name ?~ "$user"');
+      return request.items;
+    } catch (e) {
+      Future.delayed(Duration(seconds: 3), () async {
+        searchUsers(user);
+      });
+    }
   }
 
   Future getComment(comment) async {
-    final request = await pb.collection('circle_comments').getOne(comment);
+    try {
+      final request = await pb.collection('circle_comments').getOne(comment);
 
-    return request;
+      return request;
+    } catch (e) {
+      Future.delayed(Duration(seconds: 3), () async {
+        getComment(comment);
+      });
+    }
   }
 
   Future getPost(post) async {
-    final request = await pb.collection('circle_posts').getOne(
-          post,
-          expand: "by,comments.by, likes, dislikes",
-        );
+    try {
+      final request = await pb.collection('circle_posts').getOne(
+            post,
+            expand: "by,comments.by, likes, dislikes",
+          );
 
-    return request;
+      return request;
+    } catch (e) {
+      Future.delayed(Duration(seconds: 3), () async {
+        getPost(post);
+      });
+    }
   }
 
   Future getNotificationCount(user) async {
-    final records = await pb.collection('notifications').getFullList(
-          filter: 'user.id = "$user"',
-          expand:
-              'linked_user,linked_comment.post,linked_comment.post.comments, linked_comment.by',
-          sort: '-created',
-        );
-    return records;
+    try {
+      final records = await pb.collection('notifications').getFullList(
+            filter: "user.id='$user'",
+            expand:
+                'linked_user,linked_comment.post,linked_comment.post.comments, linked_comment.by',
+            sort: '-created',
+          );
+      return records;
+    } catch (e) {
+      Future.delayed(Duration(seconds: 10), () async {
+        getNotificationCount(user);
+      });
+    }
+  }
+
+  Future getNotifications(user) async {
+    try {
+      final records = await pb.collection('notifications').getList(
+            page: 1,
+            perPage: 15,
+            filter: "user.id='$user'",
+            expand:
+                'linked_user,linked_comment.post,linked_comment.post.comments, linked_comment.by',
+            sort: '-created',
+          );
+      return records.items;
+    } catch (e) {
+      Future.delayed(Duration(seconds: 5), () async {
+        getNotifications(user);
+      });
+    }
   }
 
   Stream notificationSubscriber(context) async* {
@@ -239,26 +341,37 @@ class Fetcher {
   }
 
   Future acceptRequest(user, target, notification) async {
-    var request = await pb.collection('users').getOne(user);
-    var response = request.toJson();
-    var friends = response['friends'];
-    friends.add(target);
+    try {
+      var request = await pb.collection('users').getOne(user);
+      var response = request.toJson();
+      var friends = response['friends'];
+      friends.add(target);
 
-    var body = {"friends": friends};
-    await pb.collection('users').update(user, body: body);
+      var body = {"friends": friends};
+      await pb.collection('users').update(user, body: body);
 
-    request = await pb.collection('users').getOne(target);
-    response = request.toJson();
-    friends = response['friends'];
-    friends.add(user);
+      request = await pb.collection('users').getOne(target);
+      response = request.toJson();
+      friends = response['friends'];
+      friends.add(user);
 
-    body = {"friends": friends};
-    await pb.collection('users').update(target, body: body);
+      body = {"friends": friends};
+      await pb.collection('users').update(target, body: body);
 
-    await pb.collection('notifications').delete(notification);
+      await pb.collection('notifications').delete(notification);
 
-    body = {"user": target, "type": "alert", "linked_id": user, "seen": false};
-    await pb.collection('notifications').create(body: body);
+      body = {
+        "user": target,
+        "type": "alert",
+        "linked_id": user,
+        "seen": false
+      };
+      await pb.collection('notifications').create(body: body);
+    } catch (e) {
+      Future.delayed(Duration(seconds: 3), () async {
+        acceptRequest(user, target, notification);
+      });
+    }
   }
 
   Future ignoreRequest(notification) async {
@@ -284,9 +397,15 @@ class Fetcher {
   }
 
   Future markAsRead(target) async {
-    final body = {'seen': true};
+    try {
+      final body = {'seen': true};
 
-    await pb.collection('notifications').update(target, body: body);
+      await pb.collection('notifications').update(target, body: body);
+    } catch (e) {
+      Future.delayed(Duration(seconds: 5), () async {
+        markAsRead(target);
+      });
+    }
   }
 
   Future deleteNotification(target) async {
@@ -294,13 +413,19 @@ class Fetcher {
   }
 
   Future fetchMessages(user) async {
-    final request = await pb.collection('messages').getFullList(
-          sort: '-created',
-          expand: 'from, to',
-          filter: 'to.id = "$user" || from.id = "$user"',
-        );
+    try {
+      final request = await pb.collection('messages').getFullList(
+            sort: '-created',
+            expand: 'from, to',
+            filter: 'to.id = "$user" || from.id = "$user"',
+          );
 
-    return request;
+      return request;
+    } catch (e) {
+      Future.delayed(Duration(seconds: 1), () async {
+        fetchMessages(user);
+      });
+    }
   }
 
   Future getAlerts(user) async {

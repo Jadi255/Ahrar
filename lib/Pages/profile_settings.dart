@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:qalam/Pages/chats.dart';
+import 'package:qalam/Pages/fetchers.dart';
 import 'package:qalam/Pages/users_profiles.dart';
 import 'package:qalam/user_data.dart';
 import '../styles.dart';
@@ -22,6 +23,58 @@ class _SettingsState extends State<Settings> {
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<User>(context);
+    Future<Widget> getEmailNotify() async {
+      final fetcher = Fetcher(pb: user.pb);
+      var record = await fetcher.getUser(user.id);
+      var userData = record.toJson();
+      var emailNotify = userData['email_notify'] as bool;
+      return Card(
+        color: Colors.white,
+        surfaceTintColor: Colors.white,
+        elevation: 0.5,
+        child: ListTile(
+          leading: const Icon(Icons.mail),
+          trailing: Switch(
+              activeColor: greenColor,
+              inactiveThumbColor: blackColor,
+              inactiveTrackColor: Colors.white,
+              value: emailNotify,
+              onChanged: (value) async {
+                setState(() {
+                  emailNotify = emailNotify;
+                });
+
+                if (!value) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('لن تصلك اشعارات عبر البريد الإلكتروني'),
+                  ));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('تم تفعيل الاشعارات عبر البريد الإلكتروني'),
+                  ));
+                }
+                await user.emailNotifications(value);
+              }),
+          title: Text('إشعارات البريد الإلكتروني', style: defaultText),
+          onTap: () async {
+            setState(() {
+              emailNotify = !emailNotify;
+              if (!emailNotify) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('لن تصلك اشعارات عبر البريد الإلكتروني'),
+                ));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('تم تفعيل الاشعارات عبر البريد الإلكتروني'),
+                ));
+              }
+            });
+            await user.emailNotifications(emailNotify);
+          },
+        ),
+      );
+    }
+
     return pagePadding(Column(
       children: [
         Card(
@@ -29,7 +82,7 @@ class _SettingsState extends State<Settings> {
           surfaceTintColor: Colors.white,
           elevation: 0.5,
           child: ListTile(
-            trailing: const Icon(Icons.drive_file_rename_outline),
+            leading: const Icon(Icons.drive_file_rename_outline),
             title: Text(
               'تفيير الإسم',
               style: defaultText,
@@ -49,7 +102,7 @@ class _SettingsState extends State<Settings> {
           surfaceTintColor: Colors.white,
           elevation: 0.5,
           child: ListTile(
-            trailing: const Icon(Icons.password),
+            leading: const Icon(Icons.password),
             title: Text('تفيير كلمة المرور', style: defaultText),
             onTap: () {
               showBottomSheet(
@@ -66,7 +119,7 @@ class _SettingsState extends State<Settings> {
           surfaceTintColor: Colors.white,
           elevation: 0.5,
           child: ListTile(
-            trailing: const Icon(Icons.edit),
+            leading: const Icon(Icons.edit),
             title: Text('تعديل ملخص الصفحة الشخصية', style: defaultText),
             onTap: () {
               showBottomSheet(
@@ -83,7 +136,7 @@ class _SettingsState extends State<Settings> {
           surfaceTintColor: Colors.white,
           elevation: 0.5,
           child: ListTile(
-            trailing: const Icon(Icons.image),
+            leading: const Icon(Icons.image),
             title: Text('تعديل الصورة الشخصية', style: defaultText),
             onTap: () {
               showDialog(
@@ -92,6 +145,35 @@ class _SettingsState extends State<Settings> {
               );
             },
           ),
+        ),
+        FutureBuilder<Widget>(
+          future: getEmailNotify(),
+          builder: (BuildContext context, AsyncSnapshot<Widget> snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Card(
+                color: Colors.white,
+                surfaceTintColor: Colors.white,
+                elevation: 0.5,
+                child: ListTile(
+                  leading: const Icon(Icons.mail),
+                  trailing: CupertinoActivityIndicator(),
+                  title: Text('إشعارات البريد الإلكتروني', style: defaultText),
+                  onTap: () {
+                    showBottomSheet(
+                      backgroundColor: Colors.transparent,
+                      enableDrag: true,
+                      context: context,
+                      builder: (context) => const UpdateBio(),
+                    );
+                  },
+                ),
+              );
+            } else if (snapshot.hasError) {
+              return Text('Error: ${snapshot.error}');
+            } else {
+              return snapshot.data!;
+            }
+          },
         ),
       ],
     ));
