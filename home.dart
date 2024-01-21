@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ffi';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
   int _currentIndex = 0;
   final _pageController = PageController();
   var initConnectivityState;
+  int buildNo = 1515;
   int buildNo = 1515;
   bool get wantKeepAlive => true;
 

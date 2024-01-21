@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -46,10 +45,14 @@ class _NotificationBellState extends State<NotificationBell> {
     } else if (kIsWeb) {
       Timer.periodic(
         Duration(seconds: 30),
+        Duration(seconds: 30),
         (timer) async {
           try {
             await getNotifications();
           } catch (e) {
+            await Future.delayed(Duration(milliseconds: 1000), () async {
+              await getNotifications();
+            });
             await Future.delayed(Duration(milliseconds: 1000), () async {
               await getNotifications();
             });
