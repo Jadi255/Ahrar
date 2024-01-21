@@ -45,7 +45,6 @@ class _NotificationBellState extends State<NotificationBell> {
     } else if (kIsWeb) {
       Timer.periodic(
         Duration(seconds: 30),
-        Duration(seconds: 30),
         (timer) async {
           try {
             await getNotifications();
@@ -69,10 +68,7 @@ class _NotificationBellState extends State<NotificationBell> {
     var newNotifications = [];
     for (var item in notificationData) {
       var notification = item.toJson();
-      var seen = notification['seen'];
-      if (!seen) {
-        newNotifications.add(notification);
-      }
+      newNotifications.add(notification);
     }
     if (newNotifications.length > 0) {
       setState(() {

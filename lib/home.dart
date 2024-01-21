@@ -21,7 +21,7 @@ import 'package:qalam/user_data.dart';
 import 'package:side_navigation/side_navigation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-int buildNo = 24010020;
+int buildNo = 24010021;
 
 class Home extends StatefulWidget {
   final AuthService authService;

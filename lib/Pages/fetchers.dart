@@ -277,7 +277,7 @@ class Fetcher {
   Future getNotificationCount(user) async {
     try {
       final records = await pb.collection('notifications').getFullList(
-            filter: "user.id='$user'",
+            filter: "seen = false && user.id='$user'",
             expand:
                 'linked_user,linked_comment.post,linked_comment.post.comments, linked_comment.by',
             sort: '-created',
